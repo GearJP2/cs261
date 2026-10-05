@@ -58,6 +58,8 @@ README นี้ยึดแนวทางจาก [Technical Constraints ฉ�
 
 ## เอกสารใน Repository
 
+เอกสารออนไลน์ของทีม: [Google Docs](https://docs.google.com/document/d/1JvytQ4TXrWQEqkzPk6YXl5Ci0BnJPsIEcSdWhq6n2AY/edit?usp=sharing)
+
 | เอกสาร | ใช้สำหรับ |
 | --- | --- |
 | [Proposal v1.2 — Python](Project_Proposal_UniSport_Buddy_v1.2_Python.docx) | ภาพรวม เป้าหมาย ขอบเขต และแผนพัฒนาฉบับ Python |
