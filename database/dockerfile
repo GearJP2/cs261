@@ -1,0 +1,10 @@
+# Use PostgreSQL as the base image
+FROM postgres:15
+
+# Set environment variables for default database setup
+ENV POSTGRES_USER=unisport
+ENV POSTGRES_PASSWORD=unisportpassword
+ENV POSTGRES_DB=unisportdb
+
+# Expose the default PostgreSQL port
+EXPOSE 5432
