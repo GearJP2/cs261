@@ -1,0 +1,16 @@
+# Only application sources and development tools enter the build context.
+**
+!backend/
+!backend/**
+!frontend/
+!frontend/**
+!scripts/
+!scripts/**
+!pyproject.toml
+!backend/Dockerfile
+**/__pycache__/
+**/*.py[cod]
+**/.venv/
+**/node_modules/
+**/.env
+**/.env.*
