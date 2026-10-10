@@ -58,6 +58,8 @@ README นี้ยึดแนวทางจาก [Technical Constraints ฉ�
 
 ## เอกสารใน Repository
 
+คู่มือเริ่มงานทีม: [Branch ของแต่ละ task ใน Sprint 1](docs/sprint-1-branches.md) พร้อมผู้รับผิดชอบ คำสั่ง checkout/switch และลำดับ dependency
+
 เอกสารออนไลน์ของทีม: [Google Docs](https://docs.google.com/document/d/1JvytQ4TXrWQEqkzPk6YXl5Ci0BnJPsIEcSdWhq6n2AY/edit?usp=sharing)
 
 | เอกสาร | ใช้สำหรับ |
