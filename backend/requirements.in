@@ -1,0 +1,4 @@
+# Shared development environment; update the generated lock, not versions by hand.
+Django>=5.2,<5.3
+psycopg[binary]>=3.2,<4
+ruff>=0.11,<1
