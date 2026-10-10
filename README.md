@@ -2,7 +2,7 @@
 
 เว็บแอปพลิเคชันสำหรับหาเพื่อนออกกำลังกายและนัดหมายเล่นกีฬาในมหาวิทยาลัย พัฒนาเป็นโครงงานรายวิชา **CS261** ผู้ใช้สามารถสร้างกลุ่มกิจกรรม (Party) ระบุชนิดกีฬา สนาม วันเวลา และจำนวนคน เพื่อให้คนที่สนใจส่งคำขอเข้าร่วมและพูดคุยเตรียมตัวก่อนเล่นกีฬา
 
-> **สถานะปัจจุบัน:** Repository ยังอยู่ในขั้นวางแผนและจัดทำเอกสาร ยังไม่มีโค้ดแอปหรือคำสั่งติดตั้งที่รันได้ ฟีเจอร์และเทคโนโลยีด้านล่างเป็นแผนการพัฒนา โดยอ้างอิงข้อเสนอฉบับ Python และรายการงาน User Story
+> **สถานะปัจจุบัน:** มี environment พัฒนาร่วมกันผ่าน Docker (Django + PostgreSQL), หน้าเริ่มต้น, health checks และ CI แล้ว ฟีเจอร์ตาม User Story รวมถึง Login มหาวิทยาลัยยังอยู่ระหว่างพัฒนา ดู [คู่มือ Development](docs/development.md) สำหรับวิธีรันและกติกาที่ทีมใช้ร่วมกัน
 
 ## เป้าหมายของโปรเจกต์
 
@@ -43,7 +43,7 @@
 
 ## เทคโนโลยีที่เสนอ
 
-README นี้ยึดแนวทางจาก [Technical Constraints ฉบับ Python](Technical_Constraints_UniSport_Buddy_Python.md) เป็นฐานในการวางแผน โดยทีมยังต้องยืนยันเทคโนโลยีและเวอร์ชันก่อนเริ่มพัฒนา
+Environment พัฒนาปัจจุบันใช้ Python 3.12, Django 5.2 และ PostgreSQL 17 ตามแนวทาง Python ของทีม ดูเวอร์ชัน dependency ที่ล็อกไว้ใน [requirements.txt](backend/requirements.txt) และข้อตกลงใน [Technical Plan](docs/sprint-1-technical-plan.md) ส่วน Redis/Channels จะเพิ่มเมื่อเริ่มงานแชท
 
 | ส่วน | เทคโนโลยี |
 | --- | --- |
@@ -77,7 +77,22 @@ README นี้ยึดแนวทางจาก [Technical Constraints ฉ�
 3. สร้างหรือรับ Issue ระบุขอบเขตงานและเงื่อนไขที่ใช้ตรวจรับให้ชัดเจน
 4. อัปเดต `main` แล้วแตก branch ตามแนวทางด้านล่าง
 
-เมื่อมีโค้ดแอปแล้ว ผู้ที่วางโครงสร้างโปรเจกต์ต้องเพิ่มวิธีติดตั้ง dependencies, ไฟล์ `.env.example` ที่ไม่มีค่าลับ, วิธีเตรียม PostgreSQL/Redis, คำสั่ง migration, คำสั่งรันแอป และคำสั่งทดสอบที่ใช้งานได้จริงลงใน README นี้
+### รันและทดสอบในเครื่อง
+
+ต้องมี Docker ที่กำลังทำงานและ Docker Compose v2 รันคำสั่งจาก root ของ repository:
+
+```bash
+make init
+make up
+make verify
+make smoke
+```
+
+เปิด <http://localhost:8000/>; PostgreSQL สำหรับเครื่องมือ DB อยู่ที่ localhost:5433 ตรวจ log ด้วย `make logs` และหยุดโดยเก็บข้อมูลด้วย `make down`
+
+`make init` สร้าง `.env` เมื่อยังไม่มีไฟล์เท่านั้น ถ้ามี `.env` เดิมให้เติมค่าตาม `.env.example`; บน Linux/WSL ตรวจ LOCAL_UID/LOCAL_GID ก่อน build ดูวิธีใช้ Docker โดยไม่มี Make, migrations, การอัปเดต dependency และการทำงานแต่ละส่วนใน [คู่มือ Development](docs/development.md)
+
+หลัง PR environment merge ให้ทุก task branch รัน `git fetch origin` และ `git merge origin/main` เพื่อใช้ environment ชุดเดียวกัน ก่อน merge สามารถทดลองที่ `chore/base-01-project-setup` ได้
 
 ## แนวทางทำงานร่วมกัน
 
@@ -202,4 +217,4 @@ git push -u origin feat/us-10-approve-party-request
 - อัปเดตเอกสารหรือคำสั่งใช้งานเมื่อพฤติกรรมเปลี่ยน พร้อมระบุผลทดสอบจริงและข้อจำกัดที่ยังพบ
 - ผ่าน review และ merge เข้า `main` แล้ว จึงย้ายงานเป็น `Done`
 
-กติกา review และการห้าม push เข้า `main` ใน README นี้เป็นแนวทางของทีม ยังไม่ได้หมายความว่า repository ตั้งค่า branch protection หรือ CI แล้ว
+มี CI ตรวจ environment ใน `.github/workflows/ci.yml` แล้ว ส่วนกติกา review และการห้าม push เข้า `main` ยังต้องตรวจการตั้งค่า branch protection ของ repository แยกต่างหาก
