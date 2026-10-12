@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "accounts.apps.AccountsConfig",
     "core.apps.CoreConfig",
+    "venues.apps.VenuesConfig",
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
