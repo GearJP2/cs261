@@ -45,6 +45,14 @@ class AccountSchemaTests(TestCase):
                 subject="student-123",
             )
 
+    def test_profile_rejects_empty_or_whitespace_only_display_name(self):
+        user = self.create_user("profile-validation")
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            UserProfile.objects.create(user=user, display_name="")
+
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            UserProfile.objects.create(user=user, display_name="   ")
+
     def test_deleting_user_cascades_private_profile_identity_and_interest(self):
         user = self.create_user("cascade-user")
         sport = Sport.objects.create(name="Badminton")
