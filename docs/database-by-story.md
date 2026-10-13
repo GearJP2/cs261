@@ -9,16 +9,14 @@
 
 **ห้ามสร้าง migration จากเอกสารนี้** — ตารางรอบ 2–5 เป็นแบบล็อกรอ Story เข้า Sprint ตามสัญญา หัวข้อ 9.2
 
-## 1. สถานะจริงของโค้ด ณ วันที่ 12 ต.ค. 2026
+## 1. สถานะจริงของโค้ด ณ วันที่ 14 ต.ค. 2026
 
 | สถานะ | ตาราง | อยู่ที่ไหน |
 | --- | --- | --- |
-| ✅ model + migration แล้ว | `User` (+ ตารางพื้นฐาน Django: `auth_group`, `auth_permission`, `django_session`, `django_admin_log`, …) | [accounts/0001_initial.py](../backend/accounts/migrations/0001_initial.py) |
-| 🟡 เขียน model แล้ว ยังไม่ generate migration | `UserProfile`, `Sport`, `UserSportInterest`, `Venue`, `VenueSport`, `VenueOpeningHour`, `Party`, `PartyMembership`, `JoinRequest` | [accounts/models.py](../backend/accounts/models.py), [parties/models.py](../backend/parties/models.py), [venues/models.py](../backend/venues/models.py) |
-| ⛔ ยังไม่มีในโค้ด (เจ้าของ US1-B-01) | `UniversityIdentity` | แบบอยู่ในสัญญา หัวข้อ 3.1 และ [Technical Plan](sprint-1-technical-plan.md) หัวข้อ 3 |
+| ✅ model + migration แล้ว | `User`, `UniversityIdentity`, `UserProfile`, `UserSportInterest`, `Sport`, `Venue`, `VenueSport`, `VenueOpeningHour`, `Party`, `PartyMembership`, `JoinRequest` (+ ตารางพื้นฐาน Django) | [accounts migrations](../backend/accounts/migrations/), [venues migrations](../backend/venues/migrations/), [parties migrations](../backend/parties/migrations/) |
 | 📝 แบบในเอกสารเท่านั้น | `VenueClosure`, `FriendRequest`, `Friendship`, `PartyInviteLink`, `PartyInvite` (ทางเลือก), `ChatMessage`, `ChatReadState`, `PartyReview`, `NoShowReport`, `ConductCreditEvent`, `Report`, `ModerationAction`, `Notification`, และคอลัมน์ `Venue.venue_type`, `UserProfile.rating_sum/rating_count` | สัญญา หัวข้อ 2.3–2.7 |
 
-migration ที่มีจริงตอนนี้คือ `accounts/0001_initial` เท่านั้น — `parties/migrations/` และ `venues/migrations/` มีแค่ `__init__.py`
+Migrations รอบ 1 ที่มีจริง: `venues/0001_initial`, `accounts/0002_universityidentity_userprofile`, `accounts/0003_usersportinterest`, `parties/0001_initial` และ migration follow-up ของ `parties` สำหรับ index/description.
 
 ## 2. แผนที่ Story → ตาราง (อ่านเร็ว)
 
@@ -408,17 +406,17 @@ erDiagram
 | ตาราง | app | รอบ | เก็บข้อมูลอะไร (ตัวอย่างแถว) | PK / FK / unique หลัก | Story | สถานะในโค้ด |
 | --- | --- | --- | --- | --- | --- | --- |
 | `User` | accounts | 1 (BASE-01) | บัญชีในระบบเรา — `username`, `is_active`, `is_staff`, `last_login` | PK `id`; `username` unique; M2M `groups`/`user_permissions` | ทุก Story | ✅ migration แล้ว |
-| `UserProfile` | accounts | 1 | โปรไฟล์สาธารณะ 1:1 กับ user — `display_name` (ห้ามว่าง), `credit_score` (nullable), รอบ 5 เพิ่ม `rating_sum`/`rating_count` | PK `id`; `user_id` OneToOne; CheckConstraint ชื่อไม่ว่าง | US5, US8, US14 | 🟡 model แล้ว |
-| `UniversityIdentity` | accounts | 1 | การผูกบัญชีกับ provider มหาวิทยาลัย — `provider_key`, `subject`, `student_verified_at`; **ไม่เก็บรหัสผ่าน/โทเคน** | PK `id`; FK `user_id` (ไม่ OneToOne — ผูกหลาย provider ได้); unique `(provider_key, subject)` ตาม Technical Plan — **Q-3 ยังไม่ปิด** | US1 | ⛔ ยังไม่มีในโค้ด |
-| `Sport` | parties | 1 | แคตตาล็อกกีฬา — `name` | PK `id`; `name` unique | US2, US5, US9 | 🟡 model แล้ว |
-| `UserSportInterest` | parties | 1 | user คนนี้สนใจกีฬาอะไร | FK `user_id`+`sport_id`, unique คู่ | US2, US5, US8 | 🟡 model แล้ว |
-| `Venue` | venues | 1 | สนาม/สถานที่ — `name`, `location_text`, `is_active`; รอบ 2 เพิ่ม `venue_type` (Indoor/Outdoor, nullable) | PK `id` | US2, US7, US9 | 🟡 model แล้ว |
-| `VenueSport` | venues | 1 | กีฬาที่สนามรองรับ (กันสร้าง Party ผิดกีฬา) | FK คู่ `venue_id`+`sport_id`, unique; index `sport_id` | US2, US7, US9 | 🟡 model แล้ว |
-| `VenueOpeningHour` | venues | 1 | ช่วงเวลาเปิดรายสัปดาห์ หนึ่งแถวต่อหนึ่งช่วง — `weekday` 0–6, `opens_at`, `closes_at` | PK `id`; FK `venue_id`; unique `(venue_id, weekday, opens_at)`; check 0–6 และ `opens_at < closes_at` | US2, US7, US9 | 🟡 model แล้ว |
+| `UserProfile` | accounts | 1 | โปรไฟล์สาธารณะ 1:1 กับ user — `display_name` (ห้ามว่าง), `credit_score` (nullable), รอบ 5 เพิ่ม `rating_sum`/`rating_count` | PK `id`; `user_id` OneToOne; CheckConstraint ชื่อไม่ว่าง | US5, US8, US14 | ✅ migration แล้ว |
+| `UniversityIdentity` | accounts | 1 | การผูกบัญชีกับ provider มหาวิทยาลัย — `provider_key`, `subject`, `student_verified_at`; **ไม่เก็บรหัสผ่าน/โทเคน** | PK `id`; FK `user_id` (ไม่ OneToOne — ผูกหลาย provider ได้); unique `(provider_key, subject)` | US1 | ✅ migration แล้ว |
+| `Sport` | venues | 1 | แคตตาล็อกกีฬา — `name` | PK `id`; `name` unique | US2, US5, US9 | ✅ migration แล้ว |
+| `UserSportInterest` | accounts | 1 | user คนนี้สนใจกีฬาอะไร | FK `user_id`+`sport_id`, unique คู่ | US2, US5, US8 | ✅ migration แล้ว |
+| `Venue` | venues | 1 | สนาม/สถานที่ — `name`, `location_text`, `is_active`; รอบ 2 เพิ่ม `venue_type` (Indoor/Outdoor, nullable) | PK `id` | US2, US7, US9 | ✅ migration แล้ว |
+| `VenueSport` | venues | 1 | กีฬาที่สนามรองรับ (กันสร้าง Party ผิดกีฬา) | FK คู่ `venue_id`+`sport_id`, unique; index `sport_id` | US2, US7, US9 | ✅ migration แล้ว |
+| `VenueOpeningHour` | venues | 1 | ช่วงเวลาเปิดรายสัปดาห์ หนึ่งแถวต่อหนึ่งช่วง — `weekday` 0–6, `opens_at`, `closes_at` | PK `id`; FK `venue_id`; unique `(venue_id, weekday, opens_at)`; check 0–6 และ `opens_at < closes_at` | US2, US7, US9 | ✅ migration แล้ว |
 | `VenueClosure` | venues | 2 | วันปิดเป็นช่วง — `starts_on`, `ends_on`, `reason` | PK `id`; FK `venue_id`; unique `(venue_id, starts_on)`; check `starts_on <= ends_on` | US2, US9 | 📝 แบบในเอกสาร |
-| `Party` | parties | 1 | ปาร์ตี้/นัดเล่น — `title`, `description` (≤2,000), `starts_at`/`ends_at` (UTC), `capacity` (นับรวม Host), `cancelled_at` | PK `id`; FK `host_id`/`sport_id`/`venue_id` (PROTECT); check `capacity >= 1`, `starts_at < ends_at`; index `(sport_id, starts_at)` | US2, US3, US6, US7, US8, US10, US14, แชท | 🟡 model แล้ว |
-| `PartyMembership` | parties | 1 | สมาชิกของปาร์ตี้ — หนึ่งแถวต่อ (party, user) ตลอดไป, `left_at IS NULL` = ยังอยู่ | PK `id`; FK `party_id` (CASCADE)/`user_id` (PROTECT); unique `(party_id, user_id)`; index `(party_id, left_at)` | US3, US4, US6, US7, US10 | 🟡 model แล้ว |
-| `JoinRequest` | parties | 1 | คำขอเข้าร่วม — `status` Pending/Approved/Rejected, `created_at`, `decided_at`, `decided_by_id` | PK `id`; FK `party_id` (CASCADE)/`user_id` (PROTECT)/`decided_by_id` (SET_NULL); unique `(party_id, user_id)`; index `(party_id, status, created_at)` | US3, US10, US13 | 🟡 model แล้ว |
+| `Party` | parties | 1 | ปาร์ตี้/นัดเล่น — `title`, `description` (≤2,000), `starts_at`/`ends_at` (UTC), `capacity` (นับรวม Host), `cancelled_at` | PK `id`; FK `host_id`/`sport_id`/`venue_id` (PROTECT); check `capacity >= 1`, `starts_at < ends_at`; index `(sport_id, starts_at)` | US2, US3, US6, US7, US8, US10, US14, แชท | ✅ migration แล้ว |
+| `PartyMembership` | parties | 1 | สมาชิกของปาร์ตี้ — หนึ่งแถวต่อ (party, user) ตลอดไป, `left_at IS NULL` = ยังอยู่ | PK `id`; FK `party_id` (CASCADE)/`user_id` (PROTECT); unique `(party_id, user_id)`; index `(party_id, left_at)` | US3, US4, US6, US7, US10 | ✅ migration แล้ว |
+| `JoinRequest` | parties | 1 | คำขอเข้าร่วม — `status` Pending/Approved/Rejected, `created_at`, `decided_at`, `decided_by_id` | PK `id`; FK `party_id` (CASCADE)/`user_id` (PROTECT)/`decided_by_id` (SET_NULL); unique `(party_id, user_id)`; index `(party_id, status, created_at)` | US3, US10, US13 | ✅ migration แล้ว |
 | `FriendRequest` | social | 3 | คำขอเป็นเพื่อนแบบมีทิศทาง — `status`, `created_at`, `responded_at` | PK `id`; FK `requester_id`/`addressee_id` (CASCADE); unique `(requester_id, addressee_id)`; check `requester <> addressee` | US11 | 📝 แบบในเอกสาร |
 | `Friendship` | social | 3 | ความเป็นเพื่อน หนึ่งแถวต่อคู่ — บังคับ `user_low_id < user_high_id` | PK `id`; FK สองฝั่ง; unique `(user_low_id, user_high_id)`; index `user_high_id` | US11, US12 | 📝 แบบในเอกสาร |
 | `PartyInviteLink` | social | 2 | ลิงก์เชิญของปาร์ตี้ — `token` สุ่ม, `expires_at`, `revoked_at` | PK `id`; FK `party_id` (CASCADE)/`created_by_id` (SET_NULL); `token` unique; index `(party_id, revoked_at)` | US13 | 📝 แบบในเอกสาร |
@@ -436,7 +434,7 @@ erDiagram
 
 ### Party เก็บสถานะไหม?
 
-ไม่เก็บ — DB เก็บแค่ `cancelled_at` และเวลานัด ส่วน Open/Full/InProgress/Completed **คำนวณจากข้อมูลจริง** ทุกครั้ง (service `get_party_state` ใน [parties/services.py](../backend/parties/services.py)) เพื่อไม่ให้สถานะค้างไม่ตรงกับความจริง
+ไม่เก็บ — DB เก็บแค่ `cancelled_at` และเวลานัด ส่วน Open/Full/InProgress/Completed **คำนวณจากข้อมูลจริง** ทุกครั้ง (service `get_party_state` ที่จะเพิ่มใน US3/US7) เพื่อไม่ให้สถานะค้างไม่ตรงกับความจริง
 
 | สถานะที่ API ส่ง | เงื่อนไขจาก DB |
 | --- | --- |
@@ -471,24 +469,22 @@ erDiagram
 
 ## 7. ลำดับ migration และนโยบาย FK (สรุปจากสัญญา หัวข้อ 7–8)
 
-**มี FK ไขว้ระหว่างสองแอปจริง** — `venues.VenueSport.sport → parties.Sport` และ `parties.Party.venue → venues.Venue` ถ้ารวมโมเดล `parties` ทั้งหมดในไฟล์เดียวจะได้ circular dependency ตอน `migrate` จึงต้องแยก 5 ไฟล์ตามลำดับนี้เท่านั้น (สัญญา หัวข้อ 8)
+ไม่มี FK circular ใน schema รอบนี้: `venues` สร้าง `Sport`/`Venue` ก่อน, `accounts` เพิ่ม identity/profile และ interest ที่อ้าง `venues.Sport`, จากนั้น `parties` อ้าง `venues` และ user ที่มีอยู่แล้ว
 
 | ลำดับ | ไฟล์ migration | สร้างอะไร | dependency |
 | --- | --- | --- | --- |
 | — | `accounts/0001_initial` | `User` | ✅ ทำแล้ว (BASE-01) |
-| 1 | `accounts/0002_userprofile.py` | `UserProfile` | `accounts.0001_initial` |
-| 2 | `parties/0001_initial.py` | `Sport`, `UserSportInterest` | `accounts.0001_initial` |
-| 3 | `venues/0001_initial.py` | `Venue`, `VenueSport`, `VenueOpeningHour` | `parties.0001_initial` |
-| 4 | `parties/0002_party_*.py` | `Party`, `PartyMembership`, `JoinRequest` | `parties.0001_initial` + `venues.0001_initial` |
-| แยก | `accounts/0002_*` หรือ `parties/000*` | `UniversityIdentity` | `accounts.0001_initial` — เจ้าของ US1-B-01 |
-| 2 | `venues/0002_venueclosure.py`, `social/0001_invite.py` | `Venue.venue_type`, `VenueClosure`, `PartyInviteLink` | เมื่อ US2/US13 เข้า Sprint |
-| 3 | `social/0002_friend.py` | `FriendRequest`, `Friendship` | `accounts.0001_initial` |
-| 4 | `chat/0001_initial.py` | `ChatMessage`, `ChatReadState` | `parties.0002_party_*` |
-| 5 | `accounts/0003_profile_rating.py`, `conduct/0001_initial.py` | `UserProfile.rating_sum/rating_count`, `PartyReview`, `NoShowReport`, `ConductCreditEvent` | `accounts.0002_userprofile` + `parties.0002` |
-| 5 | `moderation/0001_initial.py` | `Report`, `ModerationAction` | `chat.0001` (เป้า `reported_message_id`) |
-| รอ Q-10 | `notifications/0001_initial.py` | `Notification` | `accounts.0001_initial` |
+| 1 | `venues/0001_initial.py` | `Sport`, `Venue`, `VenueSport`, `VenueOpeningHour` | — |
+| 2 | `accounts/0002_universityidentity_userprofile.py` | `UniversityIdentity`, `UserProfile` | `accounts.0001_initial` |
+| 3 | `accounts/0003_usersportinterest.py` | `UserSportInterest` | `accounts.0002` + `venues.0001` |
+| 4 | `parties/0001_initial.py` | `Party`, `PartyMembership`, `JoinRequest` และ constraint/index หลัก | `venues.0001` + `accounts.0001` |
+| 5 | `parties/0002_*`, `parties/0003_*` | index active membership และ validation `description` | `parties.0001` |
+| รอบถัดไป | `venues/0002_venueclosure.py`, `social/0001_invite.py` | `Venue.venue_type`, `VenueClosure`, `PartyInviteLink` | เมื่อ US2/US13 เข้า Sprint |
+| รอบถัดไป | `social/0002_friend.py` | `FriendRequest`, `Friendship` | `accounts.0001_initial` |
+| รอบถัดไป | `chat/0001_initial.py` | `ChatMessage`, `ChatReadState` | `parties.0001` |
+| รอบถัดไป | `accounts/0004_profile_rating.py`, `conduct/0001_initial.py` | rating cache และข้อมูล US14 | ตาม migration รอบ 1 ที่เกี่ยวข้อง |
 
-นโยบาย FK ที่ทุก migration ต้องใช้เหมือนกัน: แถวส่วนตัวของ user และข้อมูลในบริบทของ Party → `CASCADE`; ข้อมูลที่เป็นประวัติ/ความประพฤติและ entity ที่ห้ามลบ → `PROTECT`; ผู้ที่อาจปิดบัญชีภายหลัง (ผู้ตัดสินคำขอ, ผู้ดูแล, ระบบ) → `SET_NULL` และห้าม hard delete `User`/`Sport`/`Venue`/`Party` ที่ถูกอ้างอิง — ใช้ `is_active`/`cancelled_at` แทน
+นโยบาย FK ที่ทุก migration ใช้: แถวส่วนตัวของ user และข้อมูลในบริบทของ Party → `CASCADE`; ข้อมูลที่เป็นประวัติ/ความประพฤติและ entity ที่ห้ามลบ → `PROTECT`; ผู้ที่อาจปิดบัญชีภายหลัง (ผู้ตัดสินคำขอ, ผู้ดูแล, ระบบ) → `SET_NULL` และห้าม hard delete `User`/`Sport`/`Venue`/`Party` ที่ถูกอ้างอิง — ใช้ `is_active`/`cancelled_at` แทน.
 
 ## 8. เอกสารที่เกี่ยวข้อง
 

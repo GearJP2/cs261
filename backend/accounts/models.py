@@ -51,6 +51,10 @@ class UserProfile(models.Model):
                 condition=~models.Q(display_name=""),
                 name="user_profile_name_not_empty",
             ),
+            models.CheckConstraint(
+                condition=~models.Q(display_name__regex=r"^\s*$"),
+                name="user_profile_name_not_blank",
+            ),
         ]
 
 
