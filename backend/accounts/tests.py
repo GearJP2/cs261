@@ -4,7 +4,7 @@ from django.db import IntegrityError, transaction
 from django.test import TestCase
 from venues.models import Sport
 
-from .models import UniversityIdentity, UserSportInterest
+from .models import UniversityIdentity, UserProfile, UserSportInterest
 
 
 class AccountPersistenceTests(TestCase):
@@ -49,3 +49,23 @@ class AccountSchemaTests(TestCase):
                 UserSportInterest.objects.create(user=self.user, sport=self.sport)
         UserSportInterest.objects.create(user=self.other_user, sport=self.sport)
         self.assertEqual(UserSportInterest.objects.count(), 2)
+
+    def create_user(self, username):
+        return get_user_model().objects.create_user(username, password="test-only-password")
+
+    def test_deleting_user_cascades_private_profile_identity_and_interest(self):
+        user = self.create_user("cascade-user")
+        sport = self.sport
+        UserProfile.objects.create(user=user, display_name="Cascade User")
+        UniversityIdentity.objects.create(
+            user=user,
+            provider_key="tu-sso",
+            subject="student-456",
+        )
+        UserSportInterest.objects.create(user=user, sport=sport)
+
+        user.delete()
+
+        self.assertFalse(UserProfile.objects.exists())
+        self.assertFalse(UniversityIdentity.objects.exists())
+        self.assertFalse(UserSportInterest.objects.exists())
