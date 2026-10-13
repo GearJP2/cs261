@@ -1,6 +1,10 @@
 from django.contrib.auth import get_user_model
 from django.contrib.sessions.backends.db import SessionStore
+from django.db import IntegrityError, transaction
 from django.test import TestCase
+from venues.models import Sport
+
+from accounts.models import UniversityIdentity, UserProfile, UserSportInterest
 
 
 class AccountPersistenceTests(TestCase):
@@ -19,3 +23,41 @@ class AccountPersistenceTests(TestCase):
         self.assertEqual(SessionStore(session_key)["setup_probe"], "persisted")
         session.flush()
         self.assertNotIn("setup_probe", SessionStore(session_key))
+
+
+class AccountSchemaTests(TestCase):
+    def create_user(self, username):
+        return get_user_model().objects.create_user(username, password="test-only-password")
+
+    def test_university_identity_is_unique_per_provider_subject(self):
+        first_user = self.create_user("identity-first")
+        second_user = self.create_user("identity-second")
+        UniversityIdentity.objects.create(
+            user=first_user,
+            provider_key="tu-sso",
+            subject="student-123",
+        )
+
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            UniversityIdentity.objects.create(
+                user=second_user,
+                provider_key="tu-sso",
+                subject="student-123",
+            )
+
+    def test_deleting_user_cascades_private_profile_identity_and_interest(self):
+        user = self.create_user("cascade-user")
+        sport = Sport.objects.create(name="Badminton")
+        UserProfile.objects.create(user=user, display_name="Cascade User")
+        UniversityIdentity.objects.create(
+            user=user,
+            provider_key="tu-sso",
+            subject="student-456",
+        )
+        UserSportInterest.objects.create(user=user, sport=sport)
+
+        user.delete()
+
+        self.assertFalse(UserProfile.objects.exists())
+        self.assertFalse(UniversityIdentity.objects.exists())
+        self.assertFalse(UserSportInterest.objects.exists())
