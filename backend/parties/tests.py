@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
+from django.db.models.deletion import ProtectedError
 from django.test import TestCase
 from django.utils import timezone
 from venues.models import Sport, Venue
@@ -154,3 +155,15 @@ class PartySchemaTests(TestCase):
             self.assertIsNone(request.decided_by_id)
             self.assertEqual(request.decided_at, decided_at)
         self.assertEqual(JoinRequest.objects.count(), 2)
+
+    def test_deleting_party_cascades_memberships_and_join_requests(self):
+        membership = PartyMembership.objects.create(party=self.party, user=self.member)
+        request = JoinRequest.objects.create(party=self.party, user=self.host)
+        self.party.delete()
+        self.assertFalse(PartyMembership.objects.filter(pk=membership.pk).exists())
+        self.assertFalse(JoinRequest.objects.filter(pk=request.pk).exists())
+
+    def test_user_with_membership_cannot_be_deleted(self):
+        PartyMembership.objects.create(party=self.party, user=self.member)
+        with self.assertRaises(ProtectedError):
+            self.member.delete()
