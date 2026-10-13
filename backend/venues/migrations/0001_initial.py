@@ -35,7 +35,7 @@ class Migration(migrations.Migration):
                 ('weekday', models.SmallIntegerField(choices=[(0, 'จันทร์'), (1, 'อังคาร'), (2, 'พุธ'), (3, 'พฤหัสบดี'), (4, 'ศุกร์'), (5, 'เสาร์'), (6, 'อาทิตย์')])),
                 ('opens_at', models.TimeField()),
                 ('closes_at', models.TimeField()),
-                ('venue', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='opening_hours', to='venues.venue')),
+                ('venue', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='opening_hours', to='venues.venue')),
             ],
             options={
                 'constraints': [models.CheckConstraint(condition=models.Q(('weekday__gte', 0), ('weekday__lte', 6)), name='venue_hour_valid_weekday'), models.CheckConstraint(condition=models.Q(('closes_at__gt', models.F('opens_at'))), name='venue_hour_close_after_open'), models.UniqueConstraint(fields=('venue', 'weekday', 'opens_at'), name='unique_venue_hour_start')],
@@ -46,7 +46,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('sport', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='venue_sports', to='venues.sport')),
-                ('venue', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='venue_sports', to='venues.venue')),
+                ('venue', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='venue_sports', to='venues.venue')),
             ],
             options={
                 'constraints': [models.UniqueConstraint(fields=('venue', 'sport'), name='unique_venue_sport')],

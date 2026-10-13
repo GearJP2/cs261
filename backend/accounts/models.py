@@ -8,7 +8,7 @@ class User(AbstractUser):
 class UniversityIdentity(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         related_name="university_identities",
     )
     provider_key = models.CharField(max_length=150)
@@ -34,7 +34,7 @@ class UniversityIdentity(models.Model):
 class UserProfile(models.Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         related_name="profile",
     )
     display_name = models.CharField(max_length=100)
@@ -55,12 +55,12 @@ class UserProfile(models.Model):
 class UserSportInterest(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         related_name="sport_interests",
     )
     sport = models.ForeignKey(
         "venues.Sport",
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         related_name="interested_users",
     )
 

@@ -39,9 +39,9 @@ class Migration(migrations.Migration):
                 ('status', models.CharField(choices=[('Pending', 'รออนุมัติ'), ('Approved', 'อนุมัติ'), ('Rejected', 'ปฏิเสธ')], default='Pending', max_length=8)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('decided_at', models.DateTimeField(blank=True, null=True)),
-                ('decided_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='decided_join_requests', to=settings.AUTH_USER_MODEL)),
+                ('decided_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='decided_join_requests', to=settings.AUTH_USER_MODEL)),
                 ('user', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='join_requests', to=settings.AUTH_USER_MODEL)),
-                ('party', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='join_requests', to='parties.party')),
+                ('party', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='join_requests', to='parties.party')),
             ],
         ),
         migrations.CreateModel(
@@ -50,7 +50,7 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('joined_at', models.DateTimeField(auto_now_add=True)),
                 ('left_at', models.DateTimeField(blank=True, null=True)),
-                ('party', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='memberships', to='parties.party')),
+                ('party', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='memberships', to='parties.party')),
                 ('user', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='party_memberships', to=settings.AUTH_USER_MODEL)),
             ],
         ),
@@ -76,7 +76,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddConstraint(
             model_name='joinrequest',
-            constraint=models.CheckConstraint(condition=models.Q(models.Q(('decided_at__isnull', True), ('decided_by__isnull', True), ('status', 'Pending')), models.Q(('decided_at__isnull', False), ('decided_by__isnull', False), ('status__in', ['Approved', 'Rejected'])), _connector='OR'), name='join_request_valid_decision'),
+            constraint=models.CheckConstraint(condition=models.Q(models.Q(('decided_at__isnull', True), ('decided_by__isnull', True), ('status', 'Pending')), models.Q(('decided_at__isnull', False), ('status__in', ['Approved', 'Rejected'])), _connector='OR'), name='join_request_valid_decision'),
         ),
         migrations.AddConstraint(
             model_name='partymembership',

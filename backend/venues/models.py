@@ -13,7 +13,7 @@ class Venue(models.Model):
 class VenueSport(models.Model):
     venue = models.ForeignKey(
         Venue,
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         related_name="venue_sports",
     )
     sport = models.ForeignKey(
@@ -43,7 +43,7 @@ class VenueOpeningHour(models.Model):
 
     venue = models.ForeignKey(
         Venue,
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         related_name="opening_hours",
     )
     weekday = models.SmallIntegerField(choices=Weekday.choices)
