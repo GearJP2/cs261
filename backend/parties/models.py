@@ -64,6 +64,9 @@ class PartyMembership(models.Model):
                 name="unique_party_membership",
             ),
         ]
+        indexes = [
+            models.Index(fields=["party", "left_at"]),
+        ]
 
 
 class JoinRequest(models.Model):
