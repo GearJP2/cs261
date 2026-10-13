@@ -19,7 +19,7 @@ class Party(models.Model):
         related_name="parties",
     )
     title = models.CharField(max_length=150)
-    description = models.TextField(blank=True)
+    description = models.TextField(blank=True, max_length=2000)
     starts_at = models.DateTimeField()
     ends_at = models.DateTimeField()
     capacity = models.IntegerField()
