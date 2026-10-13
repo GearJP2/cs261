@@ -54,3 +54,24 @@ class VenueSchemaTests(TestCase):
                 closes_at=time(18),
             )
         self.assertEqual(VenueOpeningHour.objects.count(), 2)
+
+    def test_deleting_venue_cascades_venue_sport(self):
+        link = VenueSport.objects.create(venue=self.venue, sport=self.sport)
+        self.venue.delete()
+        self.assertFalse(VenueSport.objects.filter(pk=link.pk).exists())
+
+    def test_opening_hour_start_is_unique_per_venue_and_weekday(self):
+        VenueOpeningHour.objects.create(
+            venue=self.venue,
+            weekday=0,
+            opens_at=time(9, 0),
+            closes_at=time(12, 0),
+        )
+
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            VenueOpeningHour.objects.create(
+                venue=self.venue,
+                weekday=0,
+                opens_at=time(9, 0),
+                closes_at=time(13, 0),
+            )
