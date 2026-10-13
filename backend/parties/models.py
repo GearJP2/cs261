@@ -46,7 +46,7 @@ class Party(models.Model):
 class PartyMembership(models.Model):
     party = models.ForeignKey(
         Party,
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         related_name="memberships",
     )
     user = models.ForeignKey(
@@ -74,7 +74,7 @@ class JoinRequest(models.Model):
 
     party = models.ForeignKey(
         Party,
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         related_name="join_requests",
     )
     user = models.ForeignKey(
@@ -91,7 +91,7 @@ class JoinRequest(models.Model):
     decided_at = models.DateTimeField(null=True, blank=True)
     decided_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name="decided_join_requests",
@@ -113,7 +113,6 @@ class JoinRequest(models.Model):
                     | models.Q(
                         status__in=["Approved", "Rejected"],
                         decided_at__isnull=False,
-                        decided_by__isnull=False,
                     )
                 ),
                 name="join_request_valid_decision",
