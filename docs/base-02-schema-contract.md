@@ -2,7 +2,7 @@
 
 ผลส่งมอบของ **BASE-02-01** (โกล / กอล์ฟ + เกียร์ประสานงาน) ใช้คู่กับ [Sprint 1 Technical Plan](sprint-1-technical-plan.md) หัวข้อ 2–3 และ [Development guide](development.md)
 
-**สถานะ: Draft รอรีวิว — Q-1/Q-2 ตอบแล้ว; model + service ถูก implement ใน branch นี้ แต่ยังไม่ generate migration**
+**สถานะ: Draft รอรีวิว — มี models และ migrations ของ Sprint 1 แล้ว; business logic และ schema tests ยังต้องพัฒนาต่อ**
 
 **อัปเดต 12 ต.ค. 2026:** ขยาย ERD ให้ **ครอบคลุมทั้งระบบ** ตามความเห็นตอนรีวิว (เดิมมีเฉพาะ 11 ตารางของ Sprint 1) — ดู [หัวข้อ 1](#1-ขอบเขต) แผนที่ Story → ตาราง, หัวข้อ 2.1 ERD ภาพรวม และหัวข้อ 2.3–2.7 รายละเอียดตารางรอบถัดไป **การสร้าง migration ยังจำกัดเฉพาะชุด A/B/C ของ Sprint 1 เท่านั้น** ดูหัวข้อ 9.2 และหัวข้อ 11 เมื่อทีมยืนยันแล้ว เอกสารนี้เป็นสัญญาที่ BASE-02-02 (migrations), BASE-02-03 (contract + service) และเจ้าของ US9-B1-01/US3-B/US7-B/US8-B ต้องยึดร่วมกัน
 
@@ -15,7 +15,7 @@ Source of truth ของ schema คือ Django ORM และ migrations ใ�
 | ระดับ | ครอบคลุมอะไร | สถานะ |
 | --- | --- | --- |
 | **ERD ทั้งระบบ** (ผลส่งมอบของ BASE-02-01) | ทุกตารางของทุกโดเมนที่ผลิตภัณฑ์นี้วางไว้ใน [README](../README.md) และ US1–US14 ใน [User Stories](user-stories.md) | ออกแบบครบในเอกสารนี้: หัวข้อ 2.1 ภาพรวม, หัวข้อ 2.2 รอบนี้, หัวข้อ 2.3–2.7 ตารางรอบถัดไป, หัวข้อ 3 data dictionary |
-| **Migration ที่สร้างจริงใน Sprint 1** | 11 ตารางในชุด A/B/C (ดูหัวข้อ 1.2) | สร้างเมื่อรัน `make migrations` ตามหัวข้อ 11 ข้อ 1–2 |
+| **Migration ที่สร้างจริงใน Sprint 1** | 11 ตารางในชุด A/B/C (ดูหัวข้อ 1.2) | มี migrations แล้วตามรายการในหัวข้อ 8; ขั้นตรวจสอบอยู่ในหัวข้อ 11 |
 
 **ทำไมต้องมีทั้งสองระดับ:** งานออกแบบ (BASE-02-01) ต้องเห็นภาพข้อมูลทั้งระบบ เพื่อไม่ให้ตารางรอบถัดไปชนกับของเดิม (US11–US14, แชท และงานผู้ดูแลอ้าง `User`/`Party`/`PartyMembership` เดิม) แต่ **ห้ามสร้าง migration ของตารางรอบ 2–5 ก่อน Story นั้นเข้า Sprint** และก่อนแก้เอกสารนี้ให้เลื่อนสถานะ (ดู Q-7…Q-13)
 
@@ -39,7 +39,7 @@ Source of truth ของ schema คือ Django ORM และ migrations ใ�
 
 `User` (มีแล้วจาก BASE-01), `UserProfile`, `UniversityIdentity`, `Sport`, `UserSportInterest`, `Venue`, `VenueSport`, `VenueOpeningHour`, `Party`, `PartyMembership`, `JoinRequest`
 
-ทุกตารางมี primary key เป็น `BigAutoField` ยกเว้นตารางเชื่อม (`VenueSport`, `UserSportInterest`) ที่ใช้ composite unique key ของคู่ FK ตาม [Technical Plan หัวข้อ 3](sprint-1-technical-plan.md)
+ทุก model รอบนี้มี primary key `id` เป็น `BigAutoField` รวมถึงตารางเชื่อม `VenueSport` และ `UserSportInterest` ซึ่งใช้ UniqueConstraint ของคู่ FK เพิ่มเติมเพื่อป้องกันข้อมูลซ้ำ
 
 ### 1.3 ตารางรอบถัดไป (ออกแบบแล้ว ยังไม่สร้าง migration)
 
@@ -444,10 +444,13 @@ erDiagram
 | | `subject` | CharField(255) | ไม่ | มาจากผลตรวจ provider; ห้ามใช้ชื่อ/email ผูกบัญชี |
 | | `student_verified_at`, `eligibility_checked_at` | DateTimeField | ใช่ | เวลาเซิร์ฟเวอร์; ไม่เก็บ password/token/assertion |
 
-### 3.2 app `venues` (ใหม่ — ประสานกับ US9-B1-01)
+| **UserSportInterest** | `user_id`, `sport_id` | FK → AUTH_USER_MODEL / venues.Sport | ไม่ | unique `(user_id, sport_id)`; อยู่ใน `accounts` |
+
+### 3.2 app `venues` (ประสานกับ US9-B1-01)
 
 | ตาราง | ฟิลด์ | ประเภท | Null | Constraint / Index |
 | --- | --- | --- | --- | --- |
+| **Sport** | `name` | CharField(80) | ไม่ | `unique`; model คือ `venues.Sport` |
 | **Venue** | `name` | CharField(150) | ไม่ | — |
 | | `location_text` | CharField(255) | ไม่ | จุดนัดพบขั้นต่ำ; ยังไม่ทำพิกัด/GPS ใน Sprint นี้ |
 | | `is_active` | BooleanField (default True) | ไม่ | สนาม `is_active=False` ห้ามใช้สร้าง/แก้ Party (ตรวจที่ service) |
@@ -466,8 +469,6 @@ erDiagram
 
 | ตาราง | ฟิลด์ | ประเภท | Null | Constraint / Index |
 | --- | --- | --- | --- | --- |
-| **Sport** | `name` | CharField(80) | ไม่ | `unique` |
-| **UserSportInterest** | `user_id`, `sport_id` | FK | ไม่ | `unique_together (user_id, sport_id)` |
 | **Party** | `host_id` | FK → AUTH_USER_MODEL | ไม่ | `on_delete=PROTECT`; index |
 | | `sport_id` | FK → Sport | ไม่ | `on_delete=PROTECT` |
 | | `venue_id` | FK → Venue | ไม่ | `on_delete=PROTECT`; **ต้องมี migration Venue มาก่อน (ดูหัวข้อ 8)** |
@@ -681,41 +682,44 @@ error envelope เป็น contract ที่ต้อง implement และ�
 
 ## 8. ลำดับ migration และ dependency
 
-`AUTH_USER_MODEL` เป็น `accounts.User` อยู่แล้ว → FK ทุกตัวอ้าง `settings.AUTH_USER_MODEL` และห้ามรัน `makemigrations` ที่แตะ user model ซ้ำ (BASE-01 ปิดแล้ว)
+`AUTH_USER_MODEL` เป็น `accounts.User` จาก BASE-01 แล้ว ใช้ `settings.AUTH_USER_MODEL` เมื่ออ้างบัญชีผู้ใช้ และไม่สร้าง User อีกชุด
 
-| ชุด | เนื้อหา | dependency | เจ้าของ |
-| --- | --- | --- | --- |
-| **A** | `UserProfile`, `Sport`, `UserSportInterest` | `accounts.0001_initial` | BASE-02-02 (โกล + พี) |
-| **B** | `Venue`, `VenueSport`, `VenueOpeningHour` | A | **US9-B1-01 (โกล + กอล์ฟ) ต้อง merge ก่อนชุด C** |
-| **C** | `Party`, `PartyMembership`, `JoinRequest` (FK → Venue) | A + **B** | BASE-02-02 |
-| แยก | `UniversityIdentity` | A | US1-B-01 (พี + โกล) |
+การจัด models ปัจจุบัน:
 
-**ตัดสินแล้ว (Q-2):** BASE-02 ทำชุด B เองทั้งหมด แล้ว US9-B1-01 เหลือ seed + ทดสอบ constraint — เร็วกว่าเพราะไม่ต้องรอ merge ข้ามทีม
+- `accounts`: `User`, `UniversityIdentity`, `UserProfile`, `UserSportInterest`
+- `venues`: `Sport`, `Venue`, `VenueSport`, `VenueOpeningHour`
+- `parties`: `Party`, `PartyMembership`, `JoinRequest`
 
-**ข้อบังคับทางเทคนิคที่ทำให้ชุด A/B/C แยกกันไม่ได้ (พบตอน implement):** มี FK ไขว้ระหว่างแอปสองทางจริง — `venues.VenueSport.sport → parties.Sport` และ `parties.Party.venue → venues.Venue` ถ้า `makemigrations` รวมโมเดล `parties` ทั้งหมดไว้ในไฟล์เดียว จะได้ `parties.0001` พึ่ง `venues.0001` พร้อมกับ `venues.0001` พึ่ง `parties.0001` ⇒ `Circular dependency detected` ตอน `migrate` ดังนั้นต้องสร้างตามลำดับนี้เท่านั้น
+BASE-02 ทำ models/migrations ของสนามในรอบนี้ตาม Q-2 โดยประสานกับ US9-B1-01 ซึ่งรับงาน seed และทดสอบสนามต่อ
 
-| ไฟล์ migration | โมเดล | dependency |
+`VenueSport.sport` อ้าง `venues.Sport` ภายใน app เดียวกัน จึงไม่มี dependency จาก `venues` กลับไป `parties` และไม่มี circular dependency แบบโครงสร้างเดิม ไม่ต้องแยก Party ออกจาก `parties/0001` เพื่อแก้วงจรนั้น
+
+| ไฟล์ migration ที่มีจริง | เนื้อหา | dependency |
 | --- | --- | --- |
-| `accounts/0002_userprofile.py` | `UserProfile` | `accounts.0001_initial` |
-| `parties/0001_initial.py` | `Sport`, `UserSportInterest` | `accounts.0001_initial` |
-| `venues/0001_initial.py` | `Venue`, `VenueSport`, `VenueOpeningHour` | `parties.0001_initial` |
-| `parties/0002_party_*.py` | `Party`, `PartyMembership`, `JoinRequest` | `parties.0001_initial`, `venues.0001_initial` |
-| `accounts/0002_*` / `parties/000*` แยกต่างหาก | `UniversityIdentity` | `accounts.0001_initial` (เจ้าของ US1-B-01) |
+| `accounts/0001_initial.py` | `User` (BASE-01) | `auth.0012_alter_user_first_name_max_length` |
+| `accounts/0002_universityidentity_userprofile.py` | `UniversityIdentity`, `UserProfile` | `accounts.0001_initial` |
+| `venues/0001_initial.py` | `Sport`, `Venue`, `VenueSport`, `VenueOpeningHour` | ไม่มี dependency ข้าม app |
+| `accounts/0003_usersportinterest.py` | `UserSportInterest` | `accounts.0002_universityidentity_userprofile`, `venues.0001_initial` |
+| `parties/0001_initial.py` | `Party`, `PartyMembership`, `JoinRequest` | `venues.0001_initial`, swappable dependency ของ `AUTH_USER_MODEL` (ปัจจุบันคือ `accounts.0001_initial`) |
+| `parties/0002_partymembership_parties_par_party_i_515d7f_idx.py` | เพิ่ม index `(party, left_at)` | `parties.0001_initial`, swappable dependency ของ `AUTH_USER_MODEL` |
+| `parties/0003_alter_party_description.py` | กำหนด `description.max_length=2000` | `parties.0002_partymembership_parties_par_party_i_515d7f_idx` |
+
+`accounts/0002` แยกจาก `UserSportInterest` เพื่อให้ identity/profile ที่ Login ใช้ไม่ต้องรอ `venues` ส่วน `accounts/0003` ต้องรอ Sport เพราะมี FK ไปยัง `venues.Sport` Django จัดลำดับตาม dependencies; ตารางนี้ไม่ได้บังคับให้รันไฟล์ทีละแถว
 
 ### แผน migration รอบ 2–5 (ยังไม่สร้าง — ล็อกลำดับไว้กัน FK ไขว้)
 
 | รอบ | ไฟล์ migration (เสนอ) | โมเดล | dependency |
 | --- | --- | --- | --- |
 | 2 | `venues/0002_venueclosure.py` | `Venue.venue_type`, `VenueClosure` | `venues.0001_initial` |
-| 2 | `social/0001_invite.py` | `PartyInviteLink`, `PartyInvite` | `parties.0002_party_*` |
+| 2 | `social/0001_invite.py` | `PartyInviteLink`, `PartyInvite` | `parties.0001_initial` |
 | 3 | `social/0002_friend.py` | `FriendRequest`, `Friendship` | `accounts.0001_initial` |
-| 4 | `chat/0001_initial.py` | `ChatMessage`, `ChatReadState` | `parties.0002_party_*` |
-| 5 | `accounts/0003_profile_rating.py` | `UserProfile.rating_sum/rating_count` | `accounts.0002_userprofile` |
-| 5 | `conduct/0001_initial.py` | `PartyReview`, `NoShowReport`, `ConductCreditEvent` | `accounts.0003`, `parties.0002` |
+| 4 | `chat/0001_initial.py` | `ChatMessage`, `ChatReadState` | `parties.0001_initial` |
+| 5 | `accounts/0004_profile_rating.py` | `UserProfile.rating_sum/rating_count` | `accounts.0003_usersportinterest` |
+| 5 | `conduct/0001_initial.py` | `PartyReview`, `NoShowReport`, `ConductCreditEvent` | `accounts.0004_profile_rating`, `parties.0001_initial` |
 | 5 | `moderation/0001_initial.py` | `Report`, `ModerationAction` | `chat.0001` (เป้า `reported_message_id`), `conduct.0001` (ไม่บังคับ) |
 | รอ Story (Q-10) | `notifications/0001_initial.py` | `Notification` | `accounts.0001_initial` |
 
-**บทเรียนจากรอบ 1:** FK ต้องชี้ทางเดียวระหว่างคู่แอป — ถ้า `moderation` อ้าง `ChatMessage` ให้ `moderation` พึ่ง `chat` และห้าม `chat` อ้างกลับ (ถ้าจำเป็นจริง ให้ใช้ FK แบบ SET_NULL ที่ประกาศเป็น migration แยกต่างหากพร้อม`run_before`/`separate_database_and_state` ตามที่ Django ต้อง)
+**การเพิ่ม models รอบถัดไป:** ตรวจ dependency graph ทุกครั้ง หากเกิด FK ไขว้จนเป็นวงจร ให้แยกการเพิ่ม FK บางส่วนเป็น migration ถัดไป ไม่ถือว่า `SET_NULL` ทำให้ dependency หายไป
 
 ## 9. Decision log
 
@@ -765,31 +769,25 @@ error envelope เป็น contract ที่ต้อง implement และ�
 - [x] ERD ครอบคลุม **ทั้งระบบ** ไม่ใช่เฉพาะชุด Sprint 1 — หัวข้อ 2.1 อ้างทุกตารางของ US1–US14 + แชท + รายงาน/ผู้ดูแล และระบุรอบที่สร้างในหัวข้อ 1.3
 - [x] data dictionary ของชุด Sprint 1 ตรงกับ [Technical Plan หัวข้อ 3](sprint-1-technical-plan.md) ทุกฟิลด์ — ตรวจทีละฟิลด์ตอน implement แล้ว; ไม่มีฟิลด์ใดเปลี่ยน (ตารางรอบ 2–5 ไม่มีใน Technical Plan หัวข้อ 3 เพราะเป็น DB ขั้นต่ำของ Sprint 1 — แหล่งอ้างอิงคือหัวข้อ 3.4–3.9 ของเอกสารนี้)
 - [x] ระบุชัดว่าใครเขียน migration ชุดไหน (BASE-02-02 / US9-B1-01 / US1-B-01) — ตารางลำดับไฟล์อยู่ในหัวข้อ 8
-- [x] **ผลตรวจเอกสารอัตโนมัติผ่าน** — `python scripts/check_schema_docs.py` (exit 0) ตรวจว่า US1–US14 ครบในหัวข้อ 1.1, entity ทุกตัวใน ERD หัวข้อ 2.1 มี data dictionary ในหัวข้อ 3, ฟิลด์ของ 11 ตารางตรงกับ Technical Plan หัวข้อ 3 และ Django models, ลำดับไฟล์ migration และสถานะจริงยังตรงหัวข้อ 8 (ยังไม่มี migration ของรอบ 2–5) — checker ตัวนี้ทดสอบด้วยการทำ drift 6 แบบ (ตัดฟิลด์, สลับลำดับ migration, ตัด Story, เพิ่ม app รอบ 2–5, เพิ่มฟิลด์ใน Plan, อ้างตารางที่ไม่มีในเอกสารสรุป) แล้วต้อง fail ทุกกรณี จึงนับเป็นหลักฐานได้
+- [ ] ตรวจเอกสารเทียบกับ models และ migrations ล่าสุด; repository ปัจจุบันไม่มี `scripts/check_schema_docs.py` จึงไม่อ้างผล checker เดิมเป็นหลักฐานของรอบนี้
 - [x] อัปเดต [sprint-1-checklist.md](sprint-1-checklist.md) และตารางใน [Technical Plan หัวข้อ 12](sprint-1-technical-plan.md) แล้ว — ลิงก์ PR ยังว่างจนกว่าจะเปิด PR
 
-**หมายเหตุสำหรับ PR:** task นี้ไม่มี migration และไม่มีโค้ดใหม่ — ไม่มีผล `make verify` ให้แนบ ให้แนบเฉพาะผลตรวจเอกสาร (`python scripts/check_schema_docs.py`) และระบุในคำอธิบาย PR ว่า migrations/contract ตามหัวข้อ 9.2 ยังรอการยืนยัน
+**หมายเหตุสำหรับ PR:** branch ปัจจุบันมีทั้งเอกสาร, models และ migrations ของ BASE-02-02 แล้ว ให้ระบุขอบเขตและแนบผล checks/lint/tests จริงใน PR; การมี migration ไม่เท่ากับมี business logic หรือ schema tests ครบ
 
-**ขอบเขตของ PR นี้ (ตกลง 12 ต.ค. 2026):** ทำเฉพาะ BASE-02-01 ให้ผ่านรีวิวก่อน ส่วน BASE-02-02 (migrations) และ BASE-02-03 (contract + service) พักไว้ ไฟล์โค้ดของสอง task นั้น (models, `parties/services.py`, `core/errors.py`, เทสต์) มีอยู่ใน branch นี้แล้วจากงานก่อนหน้า — เวลาเปิด PR ต้องตัดสินว่าจะแยก commit/PR ให้ PR ของ BASE-02-01 มีแค่เอกสาร หรือรวมไปเลยพร้อมระบุให้ชัดว่า `make verify` ยังไม่ผ่านเพราะยังไม่มี migration
+## 11. สถานะโค้ดและขั้นถัดไป
 
-## 11. ขั้นถัดไปใน branch นี้
-
-**เขียนโค้ดแล้ว (11 ต.ค. 2026) แต่ยังไม่ผ่าน `make verify` เพราะยังไม่มี migration:**
-
-| ไฟล์ | เนื้อหา |
+| ไฟล์ | เนื้อหาปัจจุบัน |
 | --- | --- |
-| `backend/accounts/models.py` | `UserProfile` (OneToOne, CheckConstraint กันชื่อว่าง/ช่องว่างล้วน, `credit_score` nullable) |
-| `backend/parties/models.py` | `Sport`, `UserSportInterest`, `Party`, `PartyMembership`, `JoinRequest` + check/unique/index ตามหัวข้อ 3.3 |
-| `backend/venues/models.py` | `Venue`, `VenueSport`, `VenueOpeningHour` + check 0–6, `opens_at < closes_at`, unique `(venue, weekday, opens_at)`, validator กันช่วงซ้อน |
-| `backend/parties/services.py` | `count_active_members`, `get_party_state`, `validate_party_schedule`, `validate_venue_for_party`, `validate_new_party`, `validate_capacity_change`, `remaining_slots`, `is_active_member`, `get_join_request_or_none`, `pending_join_request` |
-| `backend/core/errors.py` | `ErrorCode` + `ApiError` (`status`, `error_payload()`) ตามหัวข้อ 6 |
-| `backend/parties/tests.py`, `backend/venues/tests.py`, `backend/accounts/tests.py`, `backend/core/tests.py` | เทสต์ constraint หัวข้อ 4 และ service หัวข้อ 5 |
-| `backend/config/settings.py` | เพิ่ม `parties` และ `venues` ใน `INSTALLED_APPS` |
+| `backend/accounts/models.py` | `User`, `UniversityIdentity`, `UserProfile`, `UserSportInterest` |
+| `backend/venues/models.py` | `Sport`, `Venue`, `VenueSport`, `VenueOpeningHour` |
+| `backend/parties/models.py` | `Party`, `PartyMembership`, `JoinRequest` |
+| `backend/accounts/migrations/`, `backend/venues/migrations/`, `backend/parties/migrations/` | migrations ตามหัวข้อ 8 |
+| `backend/config/settings.py` | ลงทะเบียน `accounts`, `venues`, `parties` |
 
-1. เปิด Docker Desktop → `make init` → `make up`
-2. `make migrations` **ต้องตรวจว่าได้ไฟล์ตามลำดับหัวข้อ 8** — ถ้า Django รวม `Party` ไว้ใน `parties/0001` ให้แยก operations ออกเป็น `parties/0002` ก่อน แล้วจึง `make migrate` → `make verify` — **ห้าม generate migration ของตารางรอบ 2–5 ใน PR นี้** (ตารางเหล่านั้นเป็นแบบเพื่อรีวิวตามหัวข้อ 1.3–2.7)
-3. ปิด Q-6 (PLAN-04/05) กับเกียร์; Q-3/Q-4/Q-5 ยังรอเจ้าของ US1-B-01 / PLAN-04-05 / US1-D-01
-4. Q-7…Q-13 เป็นคำถามของตารางรอบ 2–5 — ตอบตอนดึง Story นั้นเข้า Sprint ไม่ต้องปิดก่อน merge PR เอกสารนี้ (แต่ต้องมีคนรับทราบในรีวิว)
-5. แนบหลักฐานใน PR: ผล `make verify` (หลังมี migration), เทสต์ constraint, และระบุว่า migration ชุด B ถูกย้ายมา BASE-02 แล้ว ให้ US9-B1-01 รับทราบ
+1. ตรวจ models, constraints และ dependencies เทียบกับหัวข้อ 3 และ 8; ไม่มี `parties.Sport` หรือ `parties.UserSportInterest` ในโครงสร้างปัจจุบัน
+2. เมื่อแก้ model ให้รัน `make migrations` แล้วตรวจไฟล์ที่สร้าง ไม่ต้องย้าย Party ออกจาก `parties/0001` ตามคำอธิบายวงจรเดิม
+3. ทดสอบ apply migrations บนฐานทดสอบว่างและเพิ่ม schema tests ตาม review แล้วรัน `make verify`; ฐานพัฒนาที่เคยใช้ชื่อ `accounts/0002` เดิมต้องจัดการประวัติ migration ก่อนใช้ชุดที่แยกใหม่ โดยรักษาข้อมูลที่ต้องเก็บ
+4. พัฒนา service/validation ในหัวข้อ 4–6 ต่อ รวมถึงตรวจช่วงเปิดสนามซ้อนกัน; อย่าอ้างว่าเขียนเสร็จจากเอกสารแผนเพียงอย่างเดียว
+5. แนบผลตรวจจริงใน PR และประสาน US9-B1-01 เรื่อง seed/tests ของสนาม
 
-หมายเหตุ: การเปิด Docker/รัน `make migrations` เป็นขั้นที่ต้องทำเองในเครื่อง — PR นี้ยังไม่มีผล `make verify` จนกว่าจะทำข้อ 1–2 เสร็จ
+ยังไม่สร้าง migrations ของตารางรอบ 2–5 จนกว่า Story นั้นเข้า Sprint และทีมยืนยัน schema; ชื่อไฟล์รอบถัดไปในหัวข้อ 8 เป็นข้อเสนอ ต้องปรับให้ต่อจาก migrations ที่มีจริงเมื่อเริ่มงาน
