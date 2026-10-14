@@ -55,9 +55,17 @@ class VenueSchemaTests(TestCase):
             )
         self.assertEqual(VenueOpeningHour.objects.count(), 2)
 
+
+class VenueDeletionAndValidationTests(TestCase):
+    def setUp(self):
+        self.sport = Sport.objects.create(name="Badminton")
+        self.venue = Venue.objects.create(name="สนามกีฬา", location_text="TU Rangsit")
+
     def test_deleting_venue_cascades_venue_sport(self):
         link = VenueSport.objects.create(venue=self.venue, sport=self.sport)
+
         self.venue.delete()
+
         self.assertFalse(VenueSport.objects.filter(pk=link.pk).exists())
 
     def test_opening_hour_start_is_unique_per_venue_and_weekday(self):
