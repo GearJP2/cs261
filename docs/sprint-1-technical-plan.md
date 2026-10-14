@@ -43,7 +43,7 @@
 | สถานะ Party | เก็บ `cancelled_at`; คำนวณสถานะตามลำดับ Cancelled → Completed → InProgress → Full → Open จากเวลาและจำนวนสมาชิก ไม่เก็บ Full ที่อาจค้าง |
 | ตารางสนามขั้นต่ำ | ตารางรายสัปดาห์ หลายช่วงต่อวันได้; วันไม่มีช่วงคือปิด; ใน Sprint นี้เสนอรับนัดภายในวันเดียวและอยู่ครบในหนึ่งช่วงเปิด ยังไม่รวมวันหยุดพิเศษ/ข้ามเที่ยงคืน ต้องยืนยันข้อจำกัดนี้ก่อนถือเป็น AC |
 | แก้ไข Party | เสนอให้แก้/ยกเลิกก่อนเริ่มเท่านั้น; แก้ไม่ได้เมื่อยกเลิกแล้ว; capacity ใหม่ต้องไม่ต่ำกว่าสมาชิกปัจจุบัน; เปลี่ยนกีฬา/สนาม/เวลาได้ถ้าผ่าน validation |
-| คำขอซ้ำ | หนึ่งแถวต่อผู้ใช้ต่อ Party; Pending เดิมคืน `409 REQUEST_EXISTS`; Rejected ยังไม่ให้ขอซ้ำใน Sprint นี้ ต้องยืนยันนโยบายก่อนพัฒนา |
+| คำขอซ้ำ | หนึ่งแถวต่อผู้ใช้ต่อ Party; Pending เดิมคืน `409 REQUEST_EXISTS`; Rejected/ถอนตัวแล้วขอใหม่ได้ โดยใช้แถวเดิมกลับเป็น Pending ล้างข้อมูลการตัดสิน และรอ Host อนุมัติใหม่ (โกลยืนยัน 14 ต.ค. 2026) |
 | คะแนนเครดิต | อ่านค่าที่เก็บไว้; ถ้ายังไม่กำหนดเครดิตตั้งต้นให้ใช้ `null` และแสดง “ยังไม่มีข้อมูล” ไม่สมมติคะแนนหรือสร้างสูตร US14 |
 | ข้อมูลตัวอย่าง | ตัวอย่าง ID และวันที่ในเอกสารเป็นสมมติ เวลาใน seed ต้องสร้างเทียบกับเวลารันทดสอบเพื่อไม่ให้หมดอายุ |
 
@@ -76,7 +76,7 @@
 
 ## 3. Database ขั้นต่ำ — โกลนำ กอล์ฟ/พีร่วมตรวจ
 
-ชื่อตารางเป็น logical names; ใช้ migrations เป็นแหล่งกำหนด schema หลัก ไม่แก้ SQL กับ ORM ให้เป็นสองชุดที่ไม่ตรงกัน `FK` หมายถึง foreign key และทุกตารางมี primary key เว้นตารางเชื่อมที่เลือก composite key
+ชื่อตารางเป็น logical names; ใช้ migrations เป็นแหล่งกำหนด schema หลัก ไม่แก้ SQL กับ ORM ให้เป็นสองชุดที่ไม่ตรงกัน `FK` หมายถึง foreign key และทุกตารางมี `id` เป็น primary key รวมตารางเชื่อมที่มี unique คู่ FK เพิ่มเติม
 
 | ตาราง | ฟิลด์ขั้นต่ำ | Constraint / Index / การใช้งาน |
 | --- | --- | --- |
@@ -96,12 +96,12 @@
 
 เสนอห้าม hard delete User/Sport/Venue/Party ที่ถูกอ้างอิงใน Sprint นี้ ใช้ is_active/cancelled_at แทน; โกลกำหนด FK delete policy ใน migration ให้สอดคล้องกัน ไม่เปิด delete endpoint โดยไม่จำเป็น
 
-เมื่อทำ US4 ภายหลัง ใช้ `left_at` ถอนตัวและเปิด membership เดิมเมื่ออนุมัติการกลับเข้าใหม่ตามนโยบายที่ตกลง ไม่สร้างแถวซ้ำ; การขอใหม่หลัง Rejected/ถอนตัวยังไม่อยู่ใน scope รอบนี้
+เมื่อทำ US4 ภายหลัง ใช้ `left_at` ถอนตัวและเปิด membership เดิมเมื่ออนุมัติการกลับเข้าใหม่ตามนโยบายที่ตกลง ไม่สร้างแถวซ้ำ; การขอใหม่หลัง Rejected/ถอนตัวใช้ JoinRequest แถวเดิมกลับเป็น Pending ตั้ง created_at ใหม่ ล้าง decided_at/decided_by_id และไม่เพิ่มสมาชิกจนอนุมัติ; เก็บเฉพาะรอบล่าสุด ตาม Schema Contract หัวข้อ 4.1.1
 
 ### Checklist ฐานระบบ (แตกจาก BASE)
 
 - [ ] **BASE-01-01** เกียร์ + โกล: ทำให้ app/DB รันได้จริง มี dependency lock, `.env.example`, migration และคำสั่ง test; ตรวจจากเครื่องเพื่อนหนึ่งคน
-- [ ] **BASE-02-01** โกล + กอล์ฟ: สร้าง ERD และตกลง field/constraint ข้างต้น ส่งเป็น PR ก่อนเริ่ม API ที่ใช้ข้อมูล
+- [ ] **BASE-02-01** โกล + กอล์ฟ: สร้าง ERD **ครอบคลุมทั้งระบบ** (ทุกตารางของ US1–US14 + แชท + รายงาน/ผู้ดูแล ไม่ใช่เฉพาะ 11 ตารางของ Sprint 1) และตกลง field/constraint ข้างต้นของชุด Sprint 1 ส่งเป็น PR ก่อนเริ่ม API ที่ใช้ข้อมูล — ตารางของ Story ที่ยังไม่เข้า Sprint ให้ล็อกแบบไว้ใน [Schema Contract](base-02-schema-contract.md) หัวข้อ 1.3 โดยยังไม่สร้าง migration
 - [ ] **BASE-02-02** โกล + พี: ทำ migrations ของ User/Profile/Sport/Interest/Party/Membership/JoinRequest; ประสานลำดับ migration สนาม US9-B1-01 ก่อน FK Party→Venue
 - [ ] **BASE-02-03** กอล์ฟ + พี + เกียร์: สร้าง contract ของ error/auth/Party state และ service กลาง `get_party_state`, `validate_party_schedule`, `count_active_members`
 - [ ] **BASE-03-01** โกล + ออสติน: seed ทำซ้ำได้ มี Host H, ผู้ขอ A/B, สมาชิกเดิม M, outsider X, inactive user, สนามเปิด/ปิด และ Party แต่ละสถานะ; มี Party เหลือหนึ่งที่สำหรับทดสอบพร้อมกัน
@@ -296,11 +296,13 @@ Service ส่งคำขอ/แก้ไข/ยกเลิก/อนุมั
 | Task ย่อย | หลัก / ผู้ช่วย | สถานะ | วันเป้าหมาย | Issue / Branch / PR | หลักฐานทดสอบ / งานที่รอ |
 | --- | --- | --- | --- | --- | --- |
 | BASE-01-01 | เกียร์ / โกล | Todo | — | — | ยืนยัน stack |
-| BASE-02-01 | โกล / กอล์ฟ | Todo | — | — | ยืนยันกติกาและ schema |
+| BASE-02-01 | โกล / กอล์ฟ | Review | — | [Schema Contract](base-02-schema-contract.md); [PR #34](https://github.com/GearJP2/cs261/pull/34) | เอกสารเดิม merge แล้ว; รอบ 14 ต.ค. แก้ ERD/constraints, ขอใหม่ได้, Indoor/Outdoor และแชท optional; รอรับรอง diff ล่าสุด ไม่รวม endpoint |
+| BASE-02-02 | โกล / พี | Doing | — | [PR #34](https://github.com/GearJP2/cs261/pull/34) | Models/migrations merge แล้ว; ผู้ส่งรายงาน migrate ผ่าน แต่ verify ยังไม่รันเพราะ import; เป็นงานส่งต่อ ไม่ทำใน Task 1 รอบนี้ |
+| BASE-02-03 | กอล์ฟ / พี + เกียร์ | Doing | — | — | Contract/service กลางเป็นงานส่งต่อ; ไม่รวมใน Task 1 รอบนี้ |
 | US1-D-01 | พี / เกียร์ | Todo | — | — | ตรวจ provider และสิทธิ์ใช้งานจริง |
 | US1-B-02 | พี / กอล์ฟ + เกียร์ | Todo | — | — | US1-D-01 และ credentials ที่ได้รับอนุญาต |
 | US1-F-01 | วี / เนท | Todo | — | — | US1-D-02 และ login contract |
-| US9-B1-01 | โกล / กอล์ฟ | Todo | — | — | BASE-02-01 |
+| US9-B1-01 | โกล / กอล์ฟ | Todo | — | — | BASE-02-01; ชุด B ย้ายไป BASE-02 แล้ว → เหลือ seed/ทดสอบ constraint |
 | US3-B-02 | พี / กอล์ฟ | Todo | — | — | Schema, session, Party service |
 | US7-B-01 | กอล์ฟ / พี | Todo | — | — | US9-B2-02 |
 | US8-F-01 | เนท / วี | Todo | — | — | API-10; ยืนยันว่าจะคง US8 |
