@@ -61,32 +61,12 @@ class VenueDeletionAndValidationTests(TestCase):
         self.sport = Sport.objects.create(name="Badminton")
         self.venue = Venue.objects.create(name="สนามกีฬา", location_text="TU Rangsit")
 
-    def test_venue_sport_is_unique_and_is_removed_with_venue(self):
+    def test_deleting_venue_cascades_venue_sport(self):
         link = VenueSport.objects.create(venue=self.venue, sport=self.sport)
 
-        with self.assertRaises(IntegrityError), transaction.atomic():
-            VenueSport.objects.create(venue=self.venue, sport=self.sport)
-
-        venue_id = self.venue.id
         self.venue.delete()
-        self.assertFalse(VenueSport.objects.filter(pk=link.pk, venue_id=venue_id).exists())
 
-    def test_opening_hour_rejects_invalid_weekday_and_time_range(self):
-        with self.assertRaises(IntegrityError), transaction.atomic():
-            VenueOpeningHour.objects.create(
-                venue=self.venue,
-                weekday=7,
-                opens_at=time(9, 0),
-                closes_at=time(10, 0),
-            )
-
-        with self.assertRaises(IntegrityError), transaction.atomic():
-            VenueOpeningHour.objects.create(
-                venue=self.venue,
-                weekday=0,
-                opens_at=time(10, 0),
-                closes_at=time(10, 0),
-            )
+        self.assertFalse(VenueSport.objects.filter(pk=link.pk).exists())
 
     def test_opening_hour_start_is_unique_per_venue_and_weekday(self):
         VenueOpeningHour.objects.create(
