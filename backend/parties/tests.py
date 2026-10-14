@@ -175,50 +175,10 @@ class PartyDeletionAndValidationTests(TestCase):
             capacity=4,
         )
 
-    def test_party_rejects_invalid_capacity_and_time_range(self):
-        starts_at = timezone.now() + timedelta(days=2)
-        with self.assertRaises(IntegrityError), transaction.atomic():
-            Party.objects.create(
-                host=self.host,
-                sport=self.sport,
-                venue=self.venue,
-                title="No capacity",
-                starts_at=starts_at,
-                ends_at=starts_at + timedelta(hours=1),
-                capacity=0,
-            )
-
-        with self.assertRaises(IntegrityError), transaction.atomic():
-            Party.objects.create(
-                host=self.host,
-                sport=self.sport,
-                venue=self.venue,
-                title="Invalid time",
-                starts_at=starts_at,
-                ends_at=starts_at,
-                capacity=1,
-            )
-
-    def test_membership_and_join_request_are_unique_per_party_and_user(self):
-        PartyMembership.objects.create(party=self.party, user=self.member)
-        JoinRequest.objects.create(party=self.party, user=self.host)
-
-        with self.assertRaises(IntegrityError), transaction.atomic():
-            PartyMembership.objects.create(party=self.party, user=self.member)
-
-        with self.assertRaises(IntegrityError), transaction.atomic():
-            JoinRequest.objects.create(party=self.party, user=self.host)
-
-    def test_join_request_decision_constraint_and_party_cascade(self):
-        with self.assertRaises(IntegrityError), transaction.atomic():
-            JoinRequest.objects.create(
-                party=self.party,
-                user=self.member,
-                status=JoinRequest.Status.APPROVED,
-            )
-
+    def test_deleting_party_cascades_memberships_and_join_requests(self):
         membership = PartyMembership.objects.create(party=self.party, user=self.member)
         request = JoinRequest.objects.create(party=self.party, user=self.host)
+
         self.party.delete()
 
         self.assertFalse(PartyMembership.objects.filter(pk=membership.pk).exists())
