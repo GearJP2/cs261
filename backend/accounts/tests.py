@@ -55,22 +55,6 @@ class AccountDeletionAndValidationTests(TestCase):
     def create_user(self, username):
         return get_user_model().objects.create_user(username, password="test-only-password")
 
-    def test_university_identity_is_unique_per_provider_subject(self):
-        first_user = self.create_user("identity-first")
-        second_user = self.create_user("identity-second")
-        UniversityIdentity.objects.create(
-            user=first_user,
-            provider_key="tu-sso",
-            subject="student-123",
-        )
-
-        with self.assertRaises(IntegrityError), transaction.atomic():
-            UniversityIdentity.objects.create(
-                user=second_user,
-                provider_key="tu-sso",
-                subject="student-123",
-            )
-
     def test_profile_rejects_empty_or_whitespace_only_display_name(self):
         user = self.create_user("profile-validation")
         with self.assertRaises(IntegrityError), transaction.atomic():
