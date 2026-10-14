@@ -156,14 +156,36 @@ class PartySchemaTests(TestCase):
             self.assertEqual(request.decided_at, decided_at)
         self.assertEqual(JoinRequest.objects.count(), 2)
 
+
+class PartyDeletionAndValidationTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.host = user_model.objects.create_user("party-host", password="test-only-password")
+        self.member = user_model.objects.create_user("party-member", password="test-only-password")
+        self.sport = Sport.objects.create(name="Basketball")
+        self.venue = Venue.objects.create(name="Gym", location_text="TU Rangsit")
+        starts_at = timezone.now() + timedelta(days=1)
+        self.party = Party.objects.create(
+            host=self.host,
+            sport=self.sport,
+            venue=self.venue,
+            title="Evening basketball",
+            starts_at=starts_at,
+            ends_at=starts_at + timedelta(hours=2),
+            capacity=4,
+        )
+
     def test_deleting_party_cascades_memberships_and_join_requests(self):
         membership = PartyMembership.objects.create(party=self.party, user=self.member)
         request = JoinRequest.objects.create(party=self.party, user=self.host)
+
         self.party.delete()
+
         self.assertFalse(PartyMembership.objects.filter(pk=membership.pk).exists())
         self.assertFalse(JoinRequest.objects.filter(pk=request.pk).exists())
 
     def test_user_with_membership_cannot_be_deleted(self):
         PartyMembership.objects.create(party=self.party, user=self.member)
+
         with self.assertRaises(ProtectedError):
             self.member.delete()
