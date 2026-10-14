@@ -18,6 +18,9 @@
 
 Migrations รอบ 1 ที่มีจริง: `venues/0001_initial`, `accounts/0002_universityidentity_userprofile`, `accounts/0003_usersportinterest`, `parties/0001_initial` และ migration follow-up ของ `parties` สำหรับ index/description.
 
+ตารางรอบถัดไปเป็นแบบเสนอ แชทเป็น optional ยังไม่ยืนยันทำ; รอบนี้แก้เฉพาะเอกสาร Task 1 ไม่เชื่อม endpoint หรือแก้ migrations
+
+
 ## 2. แผนที่ Story → ตาราง (อ่านเร็ว)
 
 | Story | ตารางที่อ่าน | ตารางที่เขียน | รอบที่สร้างตาราง |
@@ -36,7 +39,7 @@ Migrations รอบ 1 ที่มีจริง: `venues/0001_initial`, `acco
 | US12 ลบเพื่อน | `Friendship` | ลบแถว `Friendship` | 3 |
 | US13 เชิญผ่านลิงก์ | `PartyInviteLink`, `Party`, `JoinRequest`, (`PartyInvite`) | `PartyInviteLink`, `JoinRequest` (ผ่าน US3) | 2 |
 | US14 ให้ดาว / รีวิว / No-show | `PartyReview`, `NoShowReport`, `ConductCreditEvent`, `PartyMembership`, `Party`, `UserProfile` | `PartyReview`, `NoShowReport`, `ConductCreditEvent`, `UserProfile.rating_sum/count`, `credit_score` | 5 |
-| ฟีเจอร์แชทใน Party (ไม่มี US) | `Party`, `PartyMembership`, `ChatMessage`, `ChatReadState` | `ChatMessage`, `ChatReadState` | 4 |
+| ฟีเจอร์แชทใน Party (optional ยังไม่ยืนยันทำ) | `Party`, `PartyMembership`, `ChatMessage`, `ChatReadState` | `ChatMessage`, `ChatReadState` | 4 |
 | งานรายงาน / ผู้ดูแล (ไม่มี US) | `Report`, `ModerationAction`, `User.is_staff` | `Report`, `ModerationAction`, และผลลัพธ์ (`is_active`, `cancelled_at`, `removed_at`) | 5 |
 | แจ้งเตือน (ยังไม่มี Story) | `Notification` | `Notification` | รอปิด Q-10 |
 
@@ -114,7 +117,7 @@ erDiagram
 | --- | --- | --- |
 | `Party` | แหล่งข้อมูลหลักของการค้นหา — กรองด้วย `sport_id` + ช่วง `starts_at`/`ends_at` และตัด `cancelled_at IS NOT NULL` ออก สถานะ Open/Full คำนวณสดไม่เก็บใน DB | `id=42, sport=Badminton, venue=ยิม 2, starts_at=2026-10-16 17:00+07, capacity=4` |
 | `Sport` | ตัวเลือกใน filter และแสดงชื่อกีฬา | `id=3, name=Badminton` |
-| `Venue` / `VenueSport` | ยืนยันว่าสนามรองรับกีฬานั้น และกรอง `venue_type` (Indoor/Outdoor — รอบ 2 เมื่อนิยามชัด) | `venue_id=5, sport_id=3` |
+| `Venue` / `VenueSport` | ยืนยันว่าสนามรองรับกีฬานั้น และกรอง `venue_type` (Indoor/Outdoor — ยืนยันแล้ว 14 ต.ค. 2026; เพิ่มรอบ 2) | `venue_id=5, sport_id=3` |
 | `VenueOpeningHour` / `VenueClosure` | ใช้อธิบาย/ตรวจว่าช่วงที่นัดอยู่ในเวลาเปิด และสนามไม่ปิดเป็นช่วงวันที่ | `venue_id=5, weekday=4, opens_at=16:00, closes_at=22:00` |
 
 **กฎ:** filter เป็นคนละแกน (`sport`, ช่วงวันเวลา, `venue_type`) → **ไม่เก็บ `venue_type` ซ้ำบน `Party`** index ที่รองรับคือ `(sport_id, starts_at)` (มีรอบ 1) และรอบ 2 เสนอเพิ่ม `(venue_id, starts_at)` กับ `(starts_at)`
@@ -383,7 +386,7 @@ erDiagram
 
 **กฎ:** รีวิว/รายงานได้เฉพาะสมาชิกของ Party นั้นและหลัง `Completed` เท่านั้น; `unique (party_id, reviewer_id, reviewee_id)` และ `unique (party_id, reporter_id, reported_id)`; `CheckConstraint 1 <= rating <= 5`, `reviewer_id <> reviewee_id`, `delta <> 0`; `unique (party_id, user_id, kind)` บังคับ "หักได้ครั้งเดียวต่อคนต่อกิจกรรม" (แถวที่ `party_id IS NULL` ไม่ถูกจำกัด); ยังไม่ตกลงสูตรเครดิต → คง `credit_score=NULL` ได้ (D-6)
 
-### ฟีเจอร์แชทใน Party (รอบ 4 — ยังไม่มี US)
+### ฟีเจอร์แชทใน Party (optional ยังไม่ยืนยันทำ — เสนอรอบ 4)
 
 | ตาราง | เก็บอะไร | ตัวอย่างแถว |
 | --- | --- | --- |
@@ -493,3 +496,7 @@ erDiagram
 - [User Stories](user-stories.md) — AC ของ US1–US14
 - [Development guide](development.md) — วิธีรัน migrations และ environment
 - [database/README.md](../database/README.md) — นโยบาย schema/migrations ของทีม
+
+### ข้อสรุป Task 1 — 14 ต.ค. 2026
+
+โกลยืนยันให้ผู้ถูกปฏิเสธหรือถอนตัวขอเข้าร่วมใหม่ได้ ใช้ JoinRequest แถวเดิมกลับเป็น Pending ล้างผลตัดสินเดิมและรอ Host อนุมัติใหม่; membership กลับมา active เมื่ออนุมัติเท่านั้น เก็บข้อมูลรอบล่าสุด ไม่เก็บประวัติทุกรอบ ดู Schema Contract หัวข้อ 4.1.1 แชทเป็น optional ยังไม่ยืนยันทำ และประเภทสนามคือ Indoor/Outdoor
