@@ -1,8 +1,61 @@
+import json
 from unittest.mock import patch
 
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AnonymousUser
 from django.db import OperationalError
-from django.test import SimpleTestCase, TestCase
+from django.http import JsonResponse
+from django.test import RequestFactory, SimpleTestCase, TestCase
 from django.urls import reverse
+
+from .api import json_error, require_authenticated_api
+
+
+class ApiHelperTests(SimpleTestCase):
+    def test_json_error_supports_field_errors(self):
+        response = json_error("INVALID_INPUT", "ข้อมูลไม่ถูกต้อง", 400, fields={"title": "กรุณาระบุชื่อ"})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            json.loads(response.content),
+            {
+                "error": {
+                    "code": "INVALID_INPUT",
+                    "message": "ข้อมูลไม่ถูกต้อง",
+                    "fields": {"title": "กรุณาระบุชื่อ"},
+                }
+            },
+        )
+
+    def test_guard_denies_anonymous_and_inactive_users_before_calling_view(self):
+        @require_authenticated_api
+        def protected(request):
+            self.fail("Denied requests must not reach the view")
+
+        for user, status, code in (
+            (AnonymousUser(), 401, "AUTH_REQUIRED"),
+            (get_user_model()(is_active=False), 403, "ACCOUNT_INACTIVE"),
+        ):
+            with self.subTest(code=code):
+                request = RequestFactory().get("/api/v1/example")
+                request.user = user
+                response = protected(request)
+                self.assertEqual(response.status_code, status)
+                self.assertEqual(response["Content-Type"], "application/json")
+                error = json.loads(response.content)["error"]
+                self.assertEqual(error["code"], code)
+                self.assertEqual(set(error), {"code", "message"})
+
+    def test_guard_allows_active_user_and_preserves_view_arguments(self):
+        @require_authenticated_api
+        def protected(request, party_id):
+            return JsonResponse({"data": {"id": party_id, "user_id": request.user.pk}})
+
+        request = RequestFactory().get("/api/v1/example?user_id=999")
+        request.user = get_user_model()(pk=7, is_active=True)
+        response = protected(request, party_id=12)
+        self.assertEqual(protected.__name__, "protected")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(json.loads(response.content), {"data": {"id": 12, "user_id": 7}})
 
 
 class PublicPageTests(SimpleTestCase):
