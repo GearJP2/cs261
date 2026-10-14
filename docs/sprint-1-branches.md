@@ -1,48 +1,48 @@
-# Sprint 1 — Branch สำหรับทีม
+# Sprint 1 — Issue และ Branch สำหรับทีม
 
-เตรียม branch สำหรับ **US1/3/7/8/9**, งาน BASE/INT และงานประสาน Sprint ตาม [Sprint Checklist](sprint-1-checklist.md) รวม **29 task branches** จาก `main` commit `0158d0e22b5e069db49452444d7f036d796dc963` ณ วันที่ 10 ตุลาคม 2026
+ใช้ **Issue เป็น backlog หลัก** สำหรับ US1/3/7/8/9, งาน BASE/INT และงานประสาน Sprint ตาม [Sprint Checklist](sprint-1-checklist.md) ณ วันที่ 14 ตุลาคม 2026
 
-Branch ของแต่ละ task เริ่มจากโค้ดและเอกสารฐานเดียวกัน ข้อมูลนี้เป็นการเตรียมพื้นที่ทำงาน ไม่ใช่หลักฐานว่า task เสร็จแล้ว เมื่อ task ที่เป็น dependency merge เข้า main ให้ดึงเข้ามาก่อนเชื่อมระบบ
+จะสร้าง branch เมื่อเจ้าของเริ่มพัฒนาจริงเท่านั้น โดยเริ่มจาก `main` ล่าสุด งานที่ยังไม่เริ่มถูกติดตามด้วย Issue เพื่อเห็น owner, dependency และเกณฑ์ปิดงานโดยไม่ต้องดูแล branch ว่างจำนวนมาก เมื่อ dependency merge เข้า `main` ให้ดึง `main` ล่าสุดก่อนเชื่อมระบบ
 
-## เลือก branch ตามงาน
+## เลือก Issue แล้วสร้าง branch เมื่อเริ่มงาน
 
-| Task | ผู้รับผิดชอบหลัก / ผู้ช่วย | Branch | Dependency ก่อนปิดงาน |
+| Task | ผู้รับผิดชอบหลัก / ผู้ช่วย | Issue / branch ที่ใช้เมื่อเริ่มงาน | Dependency ก่อนปิดงาน |
 | --- | --- | --- | --- |
 | BASE-01 | เกียร์ / โกล | `chore/base-01-project-setup` | PLAN-04 |
-| BASE-02 | โกล / กอล์ฟ + เกียร์ | `feat/base-02-schema-contract` | PLAN-01,04,05 |
-| BASE-03 | โกล / ออสติน | `chore/base-03-test-data` | BASE-01,02 |
-| BASE-04 | พี / เกียร์ | `feat/base-04-shared-access` | PLAN-06, BASE-01,02 |
-| US1-D | วี / พี + เกียร์ | `docs/us-1-d-login-design` | ตรวจ provider และช่องทางยืนยันสิทธิ์ |
-| US1-B | พี / กอล์ฟ + โกล + เกียร์ | `feat/us-1-b-university-auth` | US1-D, BASE-01,02 และสิทธิ์เชื่อม provider |
-| US1-F | วี / เนท | `feat/us-1-f-login-ui` | US1-D และ contract |
-| US1-T | ออสติน / เกียร์ | `test/us-1-t-login` | US1-B,F |
-| US3-D | เนท / พี | `docs/us-3-d-join-design` | — |
-| US3-B | พี / กอล์ฟ + โกล | `feat/us-3-b-join-requests` | BASE-01,02,04 |
-| US3-F | เนท / วี | `feat/us-3-f-join-ui` | US3-D และ contract; ปิดงานหลังเชื่อม US3-B |
-| US3-T | ออสติน / พี | `test/us-3-t-join-requests` | BASE-03, US3-B,F |
-| US7-D | วี / กอล์ฟ | `docs/us-7-d-edit-cancel-design` | PLAN-05 |
-| US7-B | กอล์ฟ / พี | `feat/us-7-b-edit-cancel` | BASE-01,02,04, US9-B2 |
-| US7-F | วี / เนท | `feat/us-7-f-edit-cancel-ui` | US7-D และ contract; ปิดงานหลังเชื่อม US7-B |
-| US7-T | ออสติน / กอล์ฟ | `test/us-7-t-edit-cancel` | BASE-03, US7-B,F, US9 |
-| US8-D | เนท / วี | `docs/us-8-d-profile-design` | — |
-| US8-B | พี / กอล์ฟ | `feat/us-8-b-profile-api` | BASE-01,02,04 |
-| US8-F | เนท / วี | `feat/us-8-f-profile-ui` | US8-D และ contract; ปิดงานหลังเชื่อม US8-B |
-| US8-T | วี / โกล | `test/us-8-t-profile` | BASE-03, US8-B,F |
-| US9-D | ออสติน / วี | `docs/us-9-d-venue-design` | — |
-| US9-B1 | โกล / กอล์ฟ | `feat/us-9-b1-venue-database` | BASE-01,02 |
-| US9-B2 | กอล์ฟ / พี + โกล | `feat/us-9-b2-venue-api` | US9-B1, PLAN-05 |
-| US9-F | ออสติน / เนท | `feat/us-9-f-venue-ui` | US9-D,B2 และข้อสรุปหน้าสร้าง Party |
-| US9-T | เกียร์ / โกล + กอล์ฟ | `test/us-9-t-venue-hours` | US9-B1,B2,F และหน้าที่เชื่อมต่อ |
-| INT-01 | เกียร์ / ตัวแทนแต่ละคู่ | `chore/int-01-integration` | ทุก US ที่เลือก |
-| INT-02 | เกียร์ / เจ้าของ task ที่มีบั๊ก | `test/int-02-regression` | INT-01 |
-| INT-03 | เกียร์ / วี + เนท + ออสติน | `docs/int-03-demo-report` | INT-02 |
-| PLAN-02–08 | เกียร์ / ตัวแทนแต่ละคู่ | `docs/plan-02-08-sprint-coordination` | ข้อสรุปทีม / ช่องทางยืนยันบัญชี |
+| BASE-02 | โกล / กอล์ฟ + เกียร์ | [PR #6](https://github.com/GearJP2/cs261/pull/6) · `feat/base-02-schema-contract` | PLAN-01,04,05 |
+| BASE-03 | โกล / ออสติน | [#7](https://github.com/GearJP2/cs261/issues/7) · `chore/base-03-test-data` | BASE-01,02 |
+| BASE-04 | พี / เกียร์ | [PR #4](https://github.com/GearJP2/cs261/pull/4) · `feat/base-04-shared-access` | PLAN-06, BASE-01,02 |
+| US1-D | วี / พี + เกียร์ | [#8](https://github.com/GearJP2/cs261/issues/8) · `docs/us-1-d-login-design` | ตรวจ provider และช่องทางยืนยันสิทธิ์ |
+| US1-B | พี / กอล์ฟ + โกล + เกียร์ | [#9](https://github.com/GearJP2/cs261/issues/9) · `feat/us-1-b-university-auth` | US1-D, BASE-01,02 และสิทธิ์เชื่อม provider |
+| US1-F | วี / เนท | [#10](https://github.com/GearJP2/cs261/issues/10) · `feat/us-1-f-login-ui` | US1-D และ contract |
+| US1-T | ออสติน / เกียร์ | [#11](https://github.com/GearJP2/cs261/issues/11) · `test/us-1-t-login` | US1-B,F |
+| US3-D | เนท / พี | [#12](https://github.com/GearJP2/cs261/issues/12) · `docs/us-3-d-join-design` | — |
+| US3-B | พี / กอล์ฟ + โกล | [#13](https://github.com/GearJP2/cs261/issues/13) · `feat/us-3-b-join-requests` | BASE-01,02,04 |
+| US3-F | เนท / วี | [#14](https://github.com/GearJP2/cs261/issues/14) · `feat/us-3-f-join-ui` | US3-D และ contract; ปิดงานหลังเชื่อม US3-B |
+| US3-T | ออสติน / พี | [#15](https://github.com/GearJP2/cs261/issues/15) · `test/us-3-t-join-requests` | BASE-03, US3-B,F |
+| US7-D | วี / กอล์ฟ | [#16](https://github.com/GearJP2/cs261/issues/16) · `docs/us-7-d-edit-cancel-design` | PLAN-05 |
+| US7-B | กอล์ฟ / พี | [#17](https://github.com/GearJP2/cs261/issues/17) · `feat/us-7-b-edit-cancel` | BASE-01,02,04, US9-B2 |
+| US7-F | วี / เนท | [#18](https://github.com/GearJP2/cs261/issues/18) · `feat/us-7-f-edit-cancel-ui` | US7-D และ contract; ปิดงานหลังเชื่อม US7-B |
+| US7-T | ออสติน / กอล์ฟ | [#19](https://github.com/GearJP2/cs261/issues/19) · `test/us-7-t-edit-cancel` | BASE-03, US7-B,F, US9 |
+| US8-D | เนท / วี | [#20](https://github.com/GearJP2/cs261/issues/20) · `docs/us-8-d-profile-design` | — |
+| US8-B | พี / กอล์ฟ | [#21](https://github.com/GearJP2/cs261/issues/21) · `feat/us-8-b-profile-api` | BASE-01,02,04 |
+| US8-F | เนท / วี | [#22](https://github.com/GearJP2/cs261/issues/22) · `feat/us-8-f-profile-ui` | US8-D และ contract; ปิดงานหลังเชื่อม US8-B |
+| US8-T | วี / โกล | [#23](https://github.com/GearJP2/cs261/issues/23) · `test/us-8-t-profile` | BASE-03, US8-B,F |
+| US9-D | ออสติน / วี | [#24](https://github.com/GearJP2/cs261/issues/24) · `docs/us-9-d-venue-design` | — |
+| US9-B1 | โกล / กอล์ฟ | [#25](https://github.com/GearJP2/cs261/issues/25) · `feat/us-9-b1-venue-database` | BASE-01,02 |
+| US9-B2 | กอล์ฟ / พี + โกล | [#26](https://github.com/GearJP2/cs261/issues/26) · `feat/us-9-b2-venue-api` | US9-B1, PLAN-05 |
+| US9-F | ออสติน / เนท | [#27](https://github.com/GearJP2/cs261/issues/27) · `feat/us-9-f-venue-ui` | US9-D,B2 และข้อสรุปหน้าสร้าง Party |
+| US9-T | เกียร์ / โกล + กอล์ฟ | [PR #5](https://github.com/GearJP2/cs261/pull/5) · `test/us-9-t-venue-hours` | US9-B1,B2,F และหน้าที่เชื่อมต่อ |
+| INT-01 | เกียร์ / ตัวแทนแต่ละคู่ | [#28](https://github.com/GearJP2/cs261/issues/28) · `chore/int-01-integration` | ทุก US ที่เลือก |
+| INT-02 | เกียร์ / เจ้าของ task ที่มีบั๊ก | [#29](https://github.com/GearJP2/cs261/issues/29) · `test/int-02-regression` | INT-01 |
+| INT-03 | เกียร์ / วี + เนท + ออสติน | [#30](https://github.com/GearJP2/cs261/issues/30) · `docs/int-03-demo-report` | INT-02 |
+| PLAN-02–08 | เกียร์ / ตัวแทนแต่ละคู่ | [#31](https://github.com/GearJP2/cs261/issues/31) · `docs/plan-02-08-sprint-coordination` | ข้อสรุปทีม / ช่องทางยืนยันบัญชี |
 
-PLAN-01 ยืนยัน requirement แล้วจึงไม่ต้องสร้าง branch ใหม่ งาน PLAN-02 ถึง PLAN-08 ใช้ branch ประสานงานร่วมกัน ส่วน US10/US6/US4 ยังเป็นข้อเสนอและยังไม่สร้าง branch ใน Sprint นี้
+PLAN-01 ยืนยัน requirement แล้วจึงไม่ต้องสร้าง Issue หรือ branch ใหม่ ส่วน PLAN-02 ถึง PLAN-08 ติดตามรวมใน Issue #31 และสร้าง branch เฉพาะเมื่อมีเอกสารที่ต้องเปลี่ยน ส่วน US10/US6/US4 ยังเป็นข้อเสนอและยังไม่อยู่ใน Sprint นี้
 
 ## งานย่อยใช้ branch ของ task หลัก
 
-เช่น `US1-B-01` ถึง `US1-B-04` ทำใน `feat/us-1-b-university-auth` ถ้าคู่เดียวกันทำต่อเนื่อง ใช้ PR เดียวที่ทยอย commit ได้ หากต้องส่งบางส่วนก่อน ให้ตกลงขอบเขต PR กับผู้ช่วยและสร้าง branch ย่อยจาก main ล่าสุดเมื่อเริ่มงานนั้น
+เช่น `US1-B-01` ถึง `US1-B-04` ทำใน [#9](https://github.com/GearJP2/cs261/issues/9) · `feat/us-1-b-university-auth` ถ้าคู่เดียวกันทำต่อเนื่อง ใช้ PR เดียวที่ทยอย commit ได้ หากต้องส่งบางส่วนก่อน ให้ตกลงขอบเขต PR กับผู้ช่วยและสร้าง branch ย่อยจาก main ล่าสุดเมื่อเริ่มงานนั้น
 
 | Task หลัก | Task ย่อยใน Technical Plan |
 | --- | --- |
@@ -74,29 +74,16 @@ PLAN-01 ยืนยัน requirement แล้วจึงไม่ต้อ�
 
 ## เริ่มทำงานในเครื่อง
 
-หากยังไม่มี repository:
+เริ่มจากเปิด Issue ของตน ตรวจ dependency แล้วสร้าง branch จาก `main` ล่าสุด ตัวอย่าง Issue #13 (US3-B):
 
 ```bash
-git clone https://github.com/GearJP2/cs261.git
-cd cs261
-```
-
-สำหรับคนที่มี repository อยู่แล้ว ให้ commit งานค้างใน branch เดิมให้เรียบร้อยก่อนสลับ จากนั้นตัวอย่างนี้เลือก Backend Login ของพี:
-
-```bash
-git status
-git fetch origin
-git switch --track origin/feat/us-1-b-university-auth
-```
-
-คำสั่ง `switch --track` ใช้ครั้งแรกบนเครื่องที่ยังไม่มี local branch ชื่อนี้ ครั้งถัดไปใช้:
-
-```bash
-git switch feat/us-1-b-university-auth
+git switch main
 git pull --ff-only
+git switch -c feat/us-3-b-join-requests
+git push -u origin feat/us-3-b-join-requests
 ```
 
-แทนชื่อ branch ด้วยงานของตนจากตาราง `git switch` สลับ branch เช่นเดียวกับ `git checkout` จึงไม่ต้องเรียกทั้งสองคำสั่ง และไม่ต้องแตก branch ชื่อซ้ำด้วย `-c` เพราะทีมเตรียม remote branch ไว้แล้ว
+ใช้ชื่อ branch ที่เสนอในตารางได้ แต่ยังไม่ต้องสร้างจนกว่าจะเริ่มงานจริง `git switch` สลับ branch เช่นเดียวกับ `git checkout` จึงไม่ต้องใช้ทั้งสองคำสั่ง เมื่อเปิด PR ให้ใส่ `Closes #13` (แทนเลข Issue ของงาน) เพื่อให้ Issue ปิดอัตโนมัติหลัง Squash and merge
 
 ## อัปเดต dependency จาก main
 
@@ -124,7 +111,7 @@ git push
 
 ใช้ `path/to/file` จริงของงาน และ commit ทีละไฟล์ตามแนวทางที่เกียร์ขอไว้สำหรับการเตรียมงานชุดนี้ เปิด PR จาก task branch เข้า `main` โดยระบุรหัส task, สิ่งที่เปลี่ยน, วิธีทดสอบและผลจริง พร้อมผู้ตรวจที่ไม่ได้ร่วมเขียนอย่างน้อยหนึ่งคน ใช้ Conventional Commits และ Squash and merge ตาม [README](../README.md)
 
-Branch ที่ยังไม่มี commit ต่างจาก main ยังเปิด PR ไม่ได้ ให้เริ่มส่ง PR เมื่อมีงานที่ตรวจได้ หาก PR ถูก squash merge และทีมลบ remote branch แล้ว ให้จบ branch นั้นและแตก branch งานถัดไปจาก main ล่าสุด
+อย่าเปิด PR หรือสร้าง branch เปล่าเพื่อจองงาน ให้เริ่มส่ง PR เมื่อมีงานที่ตรวจได้ หาก PR ถูก squash merge และทีมลบ remote branch แล้ว ให้จบ branch นั้นและแตก branch งานถัดไปจาก main ล่าสุด
 
 ## ทำงานเป็นคู่
 
@@ -144,8 +131,6 @@ Branch ที่ยังไม่มี commit ต่างจาก main ย�
 
 ## สถานะ development runtime
 
-ตอนสร้าง branch โครง app ยังมีไฟล์ตั้งค่าที่ว่าง เช่น `backend/package.json` และ `frontend/package.json` และยังไม่มี Django app/dependency manifest ที่รันได้ Docker Compose/Dockerfile ที่มีอยู่ยังเป็น template จึงยังไม่ใช่ environment ที่ใช้คำสั่งเดียวแล้วเปิดแอปได้
-
-งานทำให้ runtime ใช้งานได้อยู่ใน **BASE-01**: ยืนยัน stack ตามแผน Django/PostgreSQL, สร้าง app, dependencies/lock, `.env.example`, Docker/build configuration, คำสั่ง migrate/run/test และทดสอบเครื่องเพื่อน เมื่อ PR นี้ผ่าน review/merge ทุก task branch ต้อง merge main เพื่อรับ environment ชุดเดียวกัน
+BASE-01 ถูก merge แล้ว: repository ใช้ Django 5.2, PostgreSQL 17 และ Docker Compose ชุดเดียวกัน ดูคำสั่งติดตั้งและตรวจระบบใน [Development Guide](development.md) ก่อนเริ่ม task ใหม่ ให้สร้าง branch จาก `main` ล่าสุดเพื่อรับ environment และ dependency ที่ผ่าน review แล้ว
 
 ค่าบัญชีมหาวิทยาลัยและ secrets ตั้งในเครื่องหรือช่องทางที่ทีมกำหนด ห้ามแนบใน commit ไฟล์เอกสารส่วนตัวที่อยู่นอก task ให้เลือก stage แยกอย่างระมัดระวัง
