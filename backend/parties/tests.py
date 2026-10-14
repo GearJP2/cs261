@@ -1,13 +1,16 @@
 from datetime import timedelta
 
+from accounts.models import UniversityIdentity, UserProfile
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
 from django.db.models.deletion import ProtectedError
 from django.test import TestCase
+from django.urls import reverse
 from django.utils import timezone
 from venues.models import Sport, Venue
 
 from .models import JoinRequest, Party, PartyMembership
+from .services import count_active_members, get_party_state
 
 
 class PartySchemaTests(TestCase):
@@ -189,3 +192,167 @@ class PartyDeletionAndValidationTests(TestCase):
 
         with self.assertRaises(ProtectedError):
             self.member.delete()
+
+
+class PartyDetailTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        users = get_user_model()
+        cls.host = users.objects.create_user("private-host-login", email="private@example.com")
+        UserProfile.objects.create(user=cls.host, display_name="ชื่อสาธารณะ")
+        UniversityIdentity.objects.create(
+            user=cls.host, provider_key="private-provider", subject="private-subject"
+        )
+        cls.member = users.objects.create_user("member")
+        cls.former_member = users.objects.create_user("former-member")
+        cls.pending = users.objects.create_user("pending")
+        cls.rejected = users.objects.create_user("rejected")
+        cls.outsider = users.objects.create_user("outsider")
+        cls.sport = Sport.objects.create(name="Badminton")
+        cls.venue = Venue.objects.create(name="Court A", location_text="Gym")
+        cls.now = timezone.now()
+        cls.party = Party.objects.create(
+            host=cls.host,
+            sport=cls.sport,
+            venue=cls.venue,
+            title="เล่นแบดมินตัน",
+            description="เล่นด้วยกันหลังเลิกเรียน",
+            starts_at=cls.now + timedelta(days=1),
+            ends_at=cls.now + timedelta(days=1, hours=2),
+            capacity=4,
+        )
+        PartyMembership.objects.create(party=cls.party, user=cls.host)
+        PartyMembership.objects.create(party=cls.party, user=cls.member)
+        PartyMembership.objects.create(party=cls.party, user=cls.former_member, left_at=cls.now)
+        JoinRequest.objects.create(party=cls.party, user=cls.pending)
+        JoinRequest.objects.create(
+            party=cls.party,
+            user=cls.rejected,
+            status=JoinRequest.Status.REJECTED,
+            decided_at=cls.now,
+            decided_by=cls.host,
+        )
+
+    def setUp(self):
+        self.url = reverse("party-detail", kwargs={"party_id": self.party.pk})
+
+    def test_anonymous_request_is_json_401_even_with_forged_user_parameters(self):
+        response = self.client.get(self.url, {"user_id": self.host.pk, "host_id": self.host.pk})
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(
+            response.json(),
+            {"error": {"code": "AUTH_REQUIRED", "message": "กรุณาเข้าสู่ระบบก่อนใช้งาน"}},
+        )
+        self.assertNotIn("Location", response)
+
+    def test_detail_has_exact_public_contract_and_ignores_forged_actor(self):
+        self.client.force_login(self.outsider)
+        response = self.client.get(self.url, {"user_id": self.host.pk, "host_id": self.host.pk})
+        self.assertEqual(self.url, f"/api/v1/parties/{self.party.pk}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(),
+            {
+                "data": {
+                    "id": self.party.pk,
+                    "title": self.party.title,
+                    "description": self.party.description,
+                    "host": {"id": self.host.pk, "display_name": "ชื่อสาธารณะ"},
+                    "sport_id": self.sport.pk,
+                    "venue_id": self.venue.pk,
+                    "starts_at": timezone.localtime(self.party.starts_at).isoformat(),
+                    "ends_at": timezone.localtime(self.party.ends_at).isoformat(),
+                    "capacity": 4,
+                    "member_count": 2,
+                    "remaining_slots": 2,
+                    "state": "Open",
+                    "is_host": False,
+                    "is_member": False,
+                }
+            },
+        )
+        self.assertIn("no-store", response["Cache-Control"])
+
+    def test_membership_flags_follow_the_session_and_current_membership(self):
+        for user, is_host, is_member in (
+            (self.host, True, True),
+            (self.member, False, True),
+            (self.former_member, False, False),
+            (self.pending, False, False),
+            (self.rejected, False, False),
+        ):
+            with self.subTest(user=user.username):
+                self.client.force_login(user)
+                data = self.client.get(self.url).json()["data"]
+                self.assertEqual(data["is_host"], is_host)
+                self.assertEqual(data["is_member"], is_member)
+                self.assertEqual(data["member_count"], 2)
+                self.assertEqual(data["remaining_slots"], 2)
+
+    def test_missing_party_returns_json_404(self):
+        self.client.force_login(self.outsider)
+        response = self.client.get(reverse("party-detail", kwargs={"party_id": self.party.pk + 1}))
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(
+            response.json(),
+            {"error": {"code": "NOT_FOUND", "message": "ไม่พบกิจกรรมที่ต้องการ"}},
+        )
+
+    def test_missing_profile_uses_generic_label_without_exposing_login(self):
+        self.host.profile.delete()
+        self.client.force_login(self.outsider)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["data"]["host"]["display_name"], "ผู้จัดกิจกรรม")
+        self.assertNotContains(response, self.host.username)
+        self.assertNotContains(response, self.host.email)
+
+    def test_unsupported_methods_do_not_change_party(self):
+        self.client.force_login(self.host)
+        for method in ("post", "put", "patch", "delete", "options"):
+            with self.subTest(method=method):
+                response = getattr(self.client, method)(self.url)
+                self.assertEqual(response.status_code, 405)
+                self.assertEqual(response.json()["error"]["code"], "METHOD_NOT_ALLOWED")
+                self.assertEqual(response["Allow"], "GET")
+        self.party.refresh_from_db()
+        self.assertIsNone(self.party.cancelled_at)
+        self.assertEqual(count_active_members(self.party), 2)
+
+    def test_revoked_or_deactivated_session_cannot_read_party(self):
+        self.client.force_login(self.outsider)
+        self.client.logout()
+        self.assertEqual(self.client.get(self.url).status_code, 401)
+        self.client.force_login(self.outsider)
+        self.outsider.is_active = False
+        self.outsider.save(update_fields=["is_active"])
+        # Django's default ModelBackend resolves an inactive session to anonymous.
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json()["error"]["code"], "AUTH_REQUIRED")
+
+    def test_full_party_response_has_consistent_state_and_remaining_slots(self):
+        self.party.capacity = 2
+        self.party.save(update_fields=["capacity"])
+        self.client.force_login(self.outsider)
+        data = self.client.get(self.url).json()["data"]
+        self.assertEqual(data["state"], "Full")
+        self.assertEqual(data["member_count"], 2)
+        self.assertEqual(data["remaining_slots"], 0)
+
+    def test_state_service_precedence_and_time_boundaries(self):
+        self.assertEqual(count_active_members(self.party), 2)
+        self.assertEqual(get_party_state(self.party, self.now), "Open")
+        self.party.capacity = 2
+        self.assertEqual(get_party_state(self.party, self.now), "Full")
+        self.assertEqual(
+            get_party_state(self.party, self.party.starts_at - timedelta(microseconds=1)), "Full"
+        )
+        self.assertEqual(get_party_state(self.party, self.party.starts_at), "InProgress")
+        self.assertEqual(
+            get_party_state(self.party, self.party.ends_at - timedelta(microseconds=1)),
+            "InProgress",
+        )
+        self.assertEqual(get_party_state(self.party, self.party.ends_at), "Completed")
+        self.party.cancelled_at = self.now
+        self.assertEqual(get_party_state(self.party, self.party.ends_at), "Cancelled")
