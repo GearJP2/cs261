@@ -8,6 +8,7 @@ from django.core.exceptions import ImproperlyConfigured
 BASE_DIR = Path(__file__).resolve().parent.parent
 PROJECT_DIR = BASE_DIR.parent
 
+TU_APPLICATION_KEY = os.environ.get("TU_APPLICATION_KEY", "")
 SECRET_KEY = os.environ.get("SECRET_KEY", "")
 DEBUG = os.environ.get("DEBUG", "false").lower() in {"1", "true", "yes"}
 if not SECRET_KEY:
