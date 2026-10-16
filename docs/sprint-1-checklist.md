@@ -181,7 +181,7 @@ Backlog ครบ US1–14 และ task รูปแบบ `ชื่อ us-�
 | PLAN-02–08 | ทุกคน | เกียร์ / ตัวแทนแต่ละคู่ | Todo | — | — | ข้อสรุปทีม / ช่องทางยืนยันบัญชี |
 | BASE-01 | เกียร์+C | เกียร์ / โกล | Review | — | `chore/base-01-project-setup`; [ผลตรวจ](development.md) | รอ review และเพื่อนทดลองตาม PLAN-04 |
 | BASE-02 | A+B+C+เกียร์ | โกล / กอล์ฟ + เกียร์ | Doing | — | [Schema Contract](base-02-schema-contract.md); [PR #34](https://github.com/GearJP2/cs261/pull/34) | Task 1 แก้เอกสารครบตามโกลยืนยัน 14 ต.ค.; รอทีมรับรอง diff ล่าสุด Task 2/3 และ endpoint เป็นงานส่งต่อ |
-| BASE-03 | C | โกล / ออสติน | Todo | — | — | BASE-01,02 |
+| BASE-03 | C | โกล / ออสติน | Doing | — | `chore/base-03-test-data`; [Seed guide](../database/seeds/README.md) | BASE-03-01 มี command/ข้อมูลตัวอย่าง/tests แล้ว; tests ทั้งหมด 46 ข้อและชุดตรวจเทียบเท่า make verify ผ่านบน PostgreSQL 17/Python 3.12; seed จริงสองรอบผ่าน; รอรีวิว/PR ก่อนปิดงาน |
 | BASE-04 | A+เกียร์ | พี / เกียร์ | Todo | — | — | PLAN-06, BASE-01,02 |
 | US1-D | B+A+เกียร์ | วี / พี + เกียร์ | Todo | — | — | ตรวจ provider และช่องทางยืนยันสิทธิ์ |
 | US1-B | A+C+เกียร์ | พี / กอล์ฟ + โกล + เกียร์ | Todo | — | — | US1-D, BASE-01,02 และสิทธิ์เชื่อม provider |

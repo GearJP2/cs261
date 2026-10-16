@@ -70,6 +70,7 @@ docker compose exec -T backend python scripts/smoke.py
 | `make smoke` | ตรวจหน้าเว็บ, CSS, liveness และ PostgreSQL readiness ของแอปที่เปิดอยู่ |
 | `make migrations` | สร้าง migration หลังแก้ model; ประสานโกลก่อน |
 | `make migrate` | ใช้ migration ที่ commit ไว้ |
+| `make seed` | สร้าง/รีเซ็ตข้อมูลทดสอบ BASE-03 บนฐาน local (`DEBUG=true`); ดู [รายละเอียด](../database/seeds/README.md) |
 | `make superuser` | สร้าง local admin เพื่อเข้าหน้า `/admin/` |
 | `make shell` | Django shell ภายใน environment เดียวกับแอป |
 | `make down` | หยุดบริการและลบ container โดยเก็บข้อมูล PostgreSQL ไว้ |
