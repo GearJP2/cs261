@@ -62,7 +62,7 @@
 
 `json_error` รองรับ `fields` เมื่อจำเป็นต้องส่งข้อผิดพลาดรายฟิลด์ด้วย URL ที่ไม่ตรง routing เช่น ID ที่ไม่ใช่จำนวนเต็มยังเป็น Django routing 404 ปกติ
 
-CSRF middleware เดิมยังทำงาน ไม่มี `csrf_exempt` คำขอ unsafe ที่ไม่ผ่าน CSRF อาจถูกปฏิเสธก่อนเข้า view; JSON `CSRF_FAILED` สำหรับ API เปลี่ยนข้อมูลเป็นงาน error handling ร่วมในอนาคตตามรีวิว
+CSRF middleware เดิมยังทำงาน ไม่มี `csrf_exempt` คำขอ unsafe ที่ไม่ผ่าน CSRF อาจถูกปฏิเสธก่อนเข้า view; US3-B เพิ่ม failure handler ให้ `/api/v1/` ตอบ JSON `403 CSRF_FAILED` แล้ว ส่วนหน้า HTML/admin ใช้ response ของ Django ตามเดิม ดู [US3-B API](us3-b-api.md)
 
 ## ส่วนที่ยังรอ US1 และงานอื่น
 
