@@ -60,7 +60,9 @@ def call_university_api(username, password):
 
 class UniversityLoginRejected(Exception):
     """API ไม่ยืนยันการเข้าสู่ระบบ"""
-
+    
+class UniversityEligibilityRejected(Exception):
+    """บัญชีไม่มีสิทธิ์เข้าใช้งานระบบ"""
 
 def validate_university_response(result):
     if not isinstance(result, dict):
