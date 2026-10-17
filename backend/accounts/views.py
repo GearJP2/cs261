@@ -1,6 +1,6 @@
 import json
 
-from django.contrib.auth import login
+from django.contrib.auth import login, logout
 from django.http import JsonResponse
 from django.middleware.csrf import get_token
 from django.views.decorators.cache import never_cache
@@ -27,6 +27,14 @@ def _error(code, message, status):
 @never_cache
 def csrf_token(request):
     return JsonResponse({"data": {"csrf_token": get_token(request)}})
+
+
+@require_POST
+@never_cache
+@csrf_protect
+def university_logout(request):
+    logout(request)
+    return JsonResponse({"data": {"logged_out": True}})
 
 
 @require_POST

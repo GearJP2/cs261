@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.sessions.backends.db import SessionStore
 from django.db import IntegrityError, transaction
@@ -297,3 +298,57 @@ class UniversityLoginViewTests(TestCase):
 
     def test_me_does_not_accept_post(self):
         self.assertEqual(self.client.post(reverse("accounts:me")).status_code, 405)
+
+    def test_logout_revokes_session_and_replayed_cookie(self):
+        self.post_login()
+        session_key = self.client.cookies[settings.SESSION_COOKIE_NAME].value
+        other_tab = Client()
+        other_tab.cookies[settings.SESSION_COOKIE_NAME] = session_key
+        self.assertEqual(other_tab.get(reverse("accounts:me")).status_code, 200)
+        self.api.reset_mock()
+
+        response = self.client.post(reverse("accounts:logout"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"data": {"logged_out": True}})
+        self.assertEqual(response.cookies[settings.SESSION_COOKIE_NAME]["max-age"], 0)
+        self.assertNotIn("_auth_user_id", SessionStore(session_key))
+        self.assertEqual(self.client.get(reverse("accounts:me")).status_code, 401)
+        self.assertEqual(other_tab.get(reverse("accounts:me")).status_code, 401)
+        self.assertEqual(get_user_model().objects.count(), 1)
+        self.assertEqual(UniversityIdentity.objects.count(), 1)
+        self.api.assert_not_called()
+
+    def test_logout_can_be_repeated_without_session(self):
+        for _ in range(2):
+            response = self.client.post(reverse("accounts:logout"))
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json(), {"data": {"logged_out": True}})
+        self.api.assert_not_called()
+
+    def test_logout_get_does_not_end_session(self):
+        self.post_login()
+        self.assertEqual(self.client.get(reverse("accounts:logout")).status_code, 405)
+        self.assertEqual(self.client.get(reverse("accounts:me")).status_code, 200)
+
+    def test_logout_requires_csrf_even_without_session(self):
+        client = Client(enforce_csrf_checks=True)
+        self.assertEqual(client.post(reverse("accounts:logout")).status_code, 403)
+        self.api.assert_not_called()
+
+    def test_csrf_protected_logout_preserves_session_until_valid_request(self):
+        client = Client(enforce_csrf_checks=True)
+        token = client.get(reverse("accounts:csrf")).json()["data"]["csrf_token"]
+        response = client.post(
+            self.login_url,
+            {"username": "student-123", "password": "test-password"},
+            content_type="application/json",
+            HTTP_X_CSRFTOKEN=token,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(client.post(reverse("accounts:logout")).status_code, 403)
+        self.assertEqual(client.get(reverse("accounts:me")).status_code, 200)
+        token = client.get(reverse("accounts:csrf")).json()["data"]["csrf_token"]
+        response = client.post(reverse("accounts:logout"), HTTP_X_CSRFTOKEN=token)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(client.get(reverse("accounts:me")).status_code, 401)
