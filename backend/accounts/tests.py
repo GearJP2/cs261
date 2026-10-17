@@ -1,18 +1,29 @@
+import io
+import json
 from datetime import timedelta
 from unittest.mock import patch
+from urllib.error import HTTPError, URLError
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.sessions.backends.db import SessionStore
 from django.contrib.sessions.models import Session
 from django.db import IntegrityError, transaction
-from django.test import Client, TestCase
+from django.test import Client, SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from venues.models import Sport
 
 from .models import UniversityIdentity, UserProfile, UserSportInterest
-from .services import UniversityAPIError, get_or_create_university_user
+from .services import (
+    UniversityAPIError,
+    UniversityEligibilityRejected,
+    UniversityLoginRejected,
+    call_university_api,
+    get_or_create_university_user,
+    validate_student_eligibility,
+    validate_university_response,
+)
 
 
 class AccountPersistenceTests(TestCase):
@@ -396,3 +407,147 @@ class UniversityLoginViewTests(TestCase):
         self.assertEqual(self.client.get(reverse("accounts:me")).status_code, 200)
         session.refresh_from_db()
         self.assertEqual(session.expire_date, expiry)
+
+
+@override_settings(TU_APPLICATION_KEY="test-only-key")
+class UniversityAPIClientTests(SimpleTestCase):
+    def setUp(self):
+        self.urlopen_patch = patch("accounts.services.urlopen")
+        self.urlopen = self.urlopen_patch.start()
+        self.addCleanup(self.urlopen_patch.stop)
+
+    def response_body(self, body):
+        self.urlopen.return_value.__enter__.return_value = io.BytesIO(body)
+
+    def test_sends_expected_request_and_reads_json(self):
+        expected = {"status": True, "displayname_th": "นักศึกษาทดสอบ"}
+        self.response_body(json.dumps(expected, ensure_ascii=False).encode("utf-8"))
+        self.assertEqual(call_university_api("student-123", "test-password"), expected)
+        self.urlopen.assert_called_once()
+        request = self.urlopen.call_args.args[0]
+        self.assertEqual(request.full_url, "https://restapi.tu.ac.th/api/v1/auth/Ad/verify")
+        self.assertEqual(request.get_method(), "POST")
+        headers = {key.lower(): value for key, value in request.header_items()}
+        self.assertEqual(headers["content-type"], "application/json")
+        self.assertEqual(headers["application-key"], "test-only-key")
+        self.assertEqual(
+            json.loads(request.data),
+            {
+                "UserName": "student-123",
+                "PassWord": "test-password",
+            },
+        )
+        self.assertEqual(self.urlopen.call_args.kwargs, {"timeout": 10})
+        self.urlopen.return_value.__exit__.assert_called_once()
+
+    @override_settings(TU_APPLICATION_KEY="")
+    def test_missing_key_does_not_send_request(self):
+        with self.assertRaises(UniversityAPIError):
+            call_university_api("student", "password")
+        self.urlopen.assert_not_called()
+
+    def test_http_errors_are_wrapped_with_original_cause(self):
+        for code in (401, 403, 500):
+            with self.subTest(code=code):
+                error = HTTPError("https://example.test", code, "provider failure", {}, None)
+                self.urlopen.side_effect = error
+                with self.assertRaises(UniversityAPIError) as caught:
+                    call_university_api("student", "password")
+                self.assertIs(caught.exception.__cause__, error)
+                self.assertIn(str(code), str(caught.exception))
+
+    def test_connection_error_and_timeout_are_wrapped(self):
+        for error in (URLError("connection failed"), TimeoutError("timeout")):
+            with self.subTest(error=error):
+                self.urlopen.side_effect = error
+                with self.assertRaises(UniversityAPIError) as caught:
+                    call_university_api("student", "password")
+                self.assertIs(caught.exception.__cause__, error)
+
+    def test_malformed_json_and_invalid_encoding_are_rejected(self):
+        for body in (b"<html>unavailable</html>", b"{", b"\xff"):
+            with self.subTest(body=body):
+                self.response_body(body)
+                with self.assertRaises(UniversityAPIError):
+                    call_university_api("student", "password")
+
+    def test_non_object_json_is_rejected(self):
+        for body in (b"[]", b"null", b'"text"', b"123"):
+            with self.subTest(body=body):
+                self.response_body(body)
+                with self.assertRaises(UniversityAPIError):
+                    call_university_api("student", "password")
+
+    def test_provider_rejection_body_is_returned_for_separate_validation(self):
+        self.response_body(b'{"status": false}')
+        self.assertEqual(call_university_api("student", "password"), {"status": False})
+
+
+class UniversityResponseValidationTests(SimpleTestCase):
+    def setUp(self):
+        self.valid = {
+            "status": True,
+            "username": "student-123",
+            "displayname_th": "Test Student",
+            "type": "student",
+        }
+
+    def test_success_maps_provider_fields_without_statusid(self):
+        self.assertEqual(
+            validate_university_response(self.valid),
+            {
+                "subject": "student-123",
+                "display_name": "Test Student",
+                "type": "student",
+            },
+        )
+
+    def test_statusid_is_not_used_for_eligibility(self):
+        data = validate_university_response(
+            {
+                **self.valid,
+                "statusid": "40",
+                "tu_status": "สำเร็จการศึกษา",
+            }
+        )
+        validate_student_eligibility(data)
+        self.assertNotIn("status_id", data)
+
+    def test_response_must_be_an_object(self):
+        for response in (None, [], "text", 1):
+            with self.subTest(response=response):
+                with self.assertRaises(UniversityAPIError):
+                    validate_university_response(response)
+
+    def test_status_must_be_boolean_true(self):
+        for status in (False, None, "true", 1, 0):
+            with self.subTest(status=status):
+                with self.assertRaises(UniversityLoginRejected):
+                    validate_university_response({**self.valid, "status": status})
+        with self.assertRaises(UniversityLoginRejected):
+            validate_university_response({})
+
+    def test_required_fields_cannot_be_missing(self):
+        for field in ("username", "displayname_th", "type"):
+            with self.subTest(field=field):
+                data = self.valid.copy()
+                del data[field]
+                with self.assertRaises(UniversityAPIError):
+                    validate_university_response(data)
+
+    def test_required_fields_must_be_nonblank_strings(self):
+        for field in ("username", "displayname_th", "type"):
+            for value in (None, "", " \t\n", 123, [], True):
+                with self.subTest(field=field, value=value):
+                    with self.assertRaises(UniversityAPIError):
+                        validate_university_response({**self.valid, field: value})
+
+    def test_non_student_types_are_rejected(self):
+        for kind in ("staff", "teacher", "unknown"):
+            with self.subTest(kind=kind):
+                data = validate_university_response({**self.valid, "type": kind})
+                with self.assertRaises(UniversityEligibilityRejected):
+                    validate_student_eligibility(data)
+
+    def test_student_type_is_accepted(self):
+        validate_student_eligibility(validate_university_response(self.valid))
