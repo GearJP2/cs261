@@ -3,16 +3,12 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.contrib.sessions.backends.db import SessionStore
 from django.db import IntegrityError, transaction
-from django.test import Client, TestCase, override_settings
-from django.urls import path
+from django.test import Client, TestCase
+from django.urls import reverse
 from venues.models import Sport
 
 from .models import UniversityIdentity, UserProfile, UserSportInterest
 from .services import UniversityAPIError, get_or_create_university_user
-from .views import university_login
-
-# Only the test client uses this route; the application URL config is unchanged.
-urlpatterns = [path("test-login", university_login)]
 
 
 class AccountPersistenceTests(TestCase):
@@ -130,9 +126,9 @@ class UniversityUserCreationTests(TestCase):
         self.assertEqual(UserProfile.objects.count(), 0)
 
 
-@override_settings(ROOT_URLCONF=__name__)
 class UniversityLoginViewTests(TestCase):
     def setUp(self):
+        self.login_url = reverse("accounts:login")
         self.response_data = {
             "status": True,
             "username": "student-123",
@@ -147,7 +143,7 @@ class UniversityLoginViewTests(TestCase):
 
     def post_login(self, data=None):
         return self.client.post(
-            "/test-login",
+            self.login_url,
             data if data is not None else {"username": "student-123", "password": "test-password"},
             content_type="application/json",
         )
@@ -166,7 +162,7 @@ class UniversityLoginViewTests(TestCase):
         for data in ([], {}, {"username": "u", "password": 123}):
             with self.subTest(data=data):
                 self.assertEqual(self.post_login(data).status_code, 400)
-        response = self.client.post("/test-login", "{", content_type="application/json")
+        response = self.client.post(self.login_url, "{", content_type="application/json")
         self.assertEqual(response.status_code, 400)
         self.api.assert_not_called()
 
@@ -199,13 +195,13 @@ class UniversityLoginViewTests(TestCase):
         self.assertNotIn("_auth_user_id", self.client.session)
 
     def test_get_is_not_allowed(self):
-        self.assertEqual(self.client.get("/test-login").status_code, 405)
+        self.assertEqual(self.client.get(self.login_url).status_code, 405)
         self.api.assert_not_called()
 
     def test_login_requires_csrf_token(self):
         client = Client(enforce_csrf_checks=True)
         response = client.post(
-            "/test-login",
+            self.login_url,
             {"username": "u", "password": "p"},
             content_type="application/json",
         )
