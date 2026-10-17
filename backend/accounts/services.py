@@ -50,3 +50,37 @@ def call_university_api(username, password):
         raise UniversityAPIError("รูปแบบ response ไม่ถูกต้อง")
 
     return result
+
+
+class UniversityLoginRejected(Exception):
+    """API ไม่ยืนยันการเข้าสู่ระบบ"""
+
+
+def validate_university_response(result):
+    if not isinstance(result, dict):
+        raise UniversityAPIError("รูปแบบ response ไม่ถูกต้อง")
+
+    if result.get("status") is not True:
+        raise UniversityLoginRejected("เข้าสู่ระบบไม่สำเร็จ")
+
+    required_fields = (
+        "username",
+        "displayname_th",
+        "type",
+        "statusid",
+    )
+
+    for field in required_fields:
+        value = result.get(field)
+
+        if not isinstance(value, str) or not value.strip():
+            raise UniversityAPIError(
+                f"response ไม่มีข้อมูล {field} ที่ถูกต้อง"
+            )
+
+    return {
+        "subject": result["username"],
+        "display_name": result["displayname_th"],
+        "type": result["type"],
+        "status_id": result["statusid"],
+    }
