@@ -236,3 +236,62 @@ class UniversityLoginViewTests(TestCase):
     def test_csrf_endpoint_does_not_accept_post(self):
         self.assertEqual(self.client.post(reverse("accounts:csrf")).status_code, 405)
         self.api.assert_not_called()
+
+    def test_me_requires_login(self):
+        response = self.client.get(reverse("accounts:me"))
+        self.assertEqual(response.status_code, 401)
+        self.api.assert_not_called()
+
+    def test_me_returns_only_current_user_public_fields(self):
+        login_response = self.post_login()
+        self.api.reset_mock()
+        response = self.client.get(reverse("accounts:me"), {"user_id": "999"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(),
+            {
+                "data": {
+                    "id": login_response.json()["data"]["id"],
+                    "display_name": "Test Student",
+                    "student_verified": True,
+                }
+            },
+        )
+        self.assertIn("no-store", response.headers["Cache-Control"])
+        self.api.assert_not_called()
+
+    def test_me_rejects_local_session_without_university_login(self):
+        user = get_user_model().objects.create_user(username="local-user")
+        self.client.force_login(user)
+        self.assertEqual(self.client.get(reverse("accounts:me")).status_code, 403)
+
+    def test_me_rejects_deleted_or_unverified_identity(self):
+        self.post_login()
+        identity = UniversityIdentity.objects.get(subject="student-123")
+        identity.student_verified_at = None
+        identity.save(update_fields=["student_verified_at"])
+        self.assertEqual(self.client.get(reverse("accounts:me")).status_code, 403)
+        identity.delete()
+        self.assertEqual(self.client.get(reverse("accounts:me")).status_code, 403)
+
+    def test_me_rejects_identity_from_another_user(self):
+        self.post_login()
+        other_user = get_user_model().objects.create_user(username="other-local-user")
+        identity = UniversityIdentity.objects.create(
+            user=other_user, provider_key="tu", subject="other-subject"
+        )
+        session = self.client.session
+        session["university_identity_id"] = identity.pk
+        session.save()
+        self.assertEqual(self.client.get(reverse("accounts:me")).status_code, 403)
+
+    def test_me_rejects_session_after_account_is_disabled(self):
+        self.post_login()
+        user = UniversityIdentity.objects.get(subject="student-123").user
+        user.is_active = False
+        user.save(update_fields=["is_active"])
+        # ModelBackend stops resolving disabled users as authenticated.
+        self.assertEqual(self.client.get(reverse("accounts:me")).status_code, 401)
+
+    def test_me_does_not_accept_post(self):
+        self.assertEqual(self.client.post(reverse("accounts:me")).status_code, 405)
