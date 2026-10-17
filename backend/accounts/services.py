@@ -1,8 +1,14 @@
 import json
+import uuid
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.db import transaction
+from django.utils import timezone
+
+from .models import UniversityIdentity, UserProfile
 
 
 class UniversityAPIError(Exception):
@@ -83,3 +89,58 @@ def validate_university_response(result):
         "type": result["type"],
     }
 
+def validate_student_eligibility(identity_data):
+    if identity_data["type"] != "student":
+        raise UniversityEligibilityRejected(
+            "บัญชีนี้ไม่ใช่บัญชีนักศึกษา"
+        )
+        
+def get_or_create_university_user(identity_data):
+    User = get_user_model()
+
+    with transaction.atomic():
+        # สร้าง User ใหม่เฉพาะเมื่อยังไม่มี identity
+        user = User(
+            username=f"tu_{uuid.uuid4().hex}",
+        )
+        user.set_unusable_password()
+
+        identity = UniversityIdentity.objects.filter(
+            provider_key="tu",
+            subject=identity_data["subject"],
+        ).first()
+
+        if identity is None:
+            user.save()
+
+            identity = UniversityIdentity.objects.create(
+                user=user,
+                provider_key="tu",
+                subject=identity_data["subject"],
+            )
+        else:
+            user = identity.user
+
+        if not user.is_active:
+            raise UniversityEligibilityRejected(
+                "บัญชีนี้ถูกระงับการใช้งาน"
+            )
+
+        UserProfile.objects.update_or_create(
+            user=user,
+            defaults={
+                "display_name": identity_data["display_name"],
+            },
+        )
+
+        now = timezone.now()
+        identity.student_verified_at = now
+        identity.eligibility_checked_at = now
+        identity.save(
+            update_fields=[
+                "student_verified_at",
+                "eligibility_checked_at",
+            ],
+        )
+
+        return user
