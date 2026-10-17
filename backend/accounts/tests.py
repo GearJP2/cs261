@@ -3,11 +3,16 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.contrib.sessions.backends.db import SessionStore
 from django.db import IntegrityError, transaction
-from django.test import TestCase
+from django.test import Client, TestCase, override_settings
+from django.urls import path
 from venues.models import Sport
 
 from .models import UniversityIdentity, UserProfile, UserSportInterest
-from .services import get_or_create_university_user
+from .services import UniversityAPIError, get_or_create_university_user
+from .views import university_login
+
+# Only the test client uses this route; the application URL config is unchanged.
+urlpatterns = [path("test-login", university_login)]
 
 
 class AccountPersistenceTests(TestCase):
@@ -121,3 +126,86 @@ class UniversityUserCreationTests(TestCase):
         self.assertEqual(get_user_model().objects.count(), 0)
         self.assertEqual(UniversityIdentity.objects.count(), 0)
         self.assertEqual(UserProfile.objects.count(), 0)
+
+
+@override_settings(ROOT_URLCONF=__name__)
+class UniversityLoginViewTests(TestCase):
+    def setUp(self):
+        self.response_data = {
+            "status": True,
+            "username": "student-123",
+            "displayname_th": "Test Student",
+            "type": "student",
+        }
+        self.api_patch = patch(
+            "accounts.views.call_university_api", return_value=self.response_data
+        )
+        self.api = self.api_patch.start()
+        self.addCleanup(self.api_patch.stop)
+
+    def post_login(self, data=None):
+        return self.client.post(
+            "/test-login",
+            data if data is not None else {"username": "student-123", "password": "test-password"},
+            content_type="application/json",
+        )
+
+    def test_success_creates_session_and_repeat_login_reuses_user(self):
+        first = self.post_login()
+        self.assertEqual(first.status_code, 200)
+        user_id = first.json()["data"]["id"]
+        self.assertEqual(self.client.session["_auth_user_id"], str(user_id))
+        second = self.post_login()
+        self.assertEqual(second.json()["data"]["id"], user_id)
+        self.assertEqual(get_user_model().objects.count(), 1)
+        self.api.assert_called_with("student-123", "test-password")
+
+    def test_invalid_input_does_not_call_provider(self):
+        for data in ([], {}, {"username": "u", "password": 123}):
+            with self.subTest(data=data):
+                self.assertEqual(self.post_login(data).status_code, 400)
+        response = self.client.post("/test-login", "{", content_type="application/json")
+        self.assertEqual(response.status_code, 400)
+        self.api.assert_not_called()
+
+    def test_provider_rejection_does_not_create_user_or_session(self):
+        self.api.return_value = {"status": False}
+        self.assertEqual(self.post_login().status_code, 401)
+        self.assertEqual(get_user_model().objects.count(), 0)
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_non_student_is_forbidden(self):
+        self.api.return_value = {**self.response_data, "type": "staff"}
+        self.assertEqual(self.post_login().status_code, 403)
+        self.assertEqual(get_user_model().objects.count(), 0)
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_inactive_user_is_forbidden(self):
+        user = get_or_create_university_user(
+            {"subject": "student-123", "display_name": "Test Student", "type": "student"}
+        )
+        user.is_active = False
+        user.save(update_fields=["is_active"])
+        self.assertEqual(self.post_login().status_code, 403)
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_provider_failure_returns_generic_error(self):
+        self.api.side_effect = UniversityAPIError("private provider details")
+        response = self.post_login()
+        self.assertEqual(response.status_code, 502)
+        self.assertNotIn("private provider details", response.content.decode())
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_get_is_not_allowed(self):
+        self.assertEqual(self.client.get("/test-login").status_code, 405)
+        self.api.assert_not_called()
+
+    def test_login_requires_csrf_token(self):
+        client = Client(enforce_csrf_checks=True)
+        response = client.post(
+            "/test-login",
+            {"username": "u", "password": "p"},
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 403)
+        self.api.assert_not_called()
