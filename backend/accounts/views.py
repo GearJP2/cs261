@@ -2,8 +2,10 @@ import json
 
 from django.contrib.auth import login
 from django.http import JsonResponse
+from django.middleware.csrf import get_token
+from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 
 from .services import (
     UniversityAPIError,
@@ -18,6 +20,12 @@ from .services import (
 
 def _error(code, message, status):
     return JsonResponse({"error": {"code": code, "message": message}}, status=status)
+
+
+@require_GET
+@never_cache
+def csrf_token(request):
+    return JsonResponse({"data": {"csrf_token": get_token(request)}})
 
 
 @require_POST

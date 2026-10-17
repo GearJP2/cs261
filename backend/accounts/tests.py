@@ -207,3 +207,34 @@ class UniversityLoginViewTests(TestCase):
         )
         self.assertEqual(response.status_code, 403)
         self.api.assert_not_called()
+
+    def test_csrf_endpoint_sets_cookie_and_disables_caching(self):
+        response = self.client.get(reverse("accounts:csrf"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["data"]["csrf_token"])
+        self.assertIn("csrftoken", response.cookies)
+        self.assertIn("no-store", response.headers["Cache-Control"])
+        self.api.assert_not_called()
+
+    def test_login_accepts_matching_csrf_token_and_rejects_wrong_token(self):
+        client = Client(enforce_csrf_checks=True)
+        token_response = client.get(reverse("accounts:csrf"))
+        token = token_response.json()["data"]["csrf_token"]
+        data = {"username": "student-123", "password": "test-password"}
+        rejected = client.post(
+            self.login_url, data, content_type="application/json", HTTP_X_CSRFTOKEN="x" * 64
+        )
+        self.assertEqual(rejected.status_code, 403)
+        self.api.assert_not_called()
+        response = client.post(
+            self.login_url, data, content_type="application/json", HTTP_X_CSRFTOKEN=token
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("_auth_user_id", client.session)
+        self.assertNotEqual(
+            client.cookies["csrftoken"].value, token_response.cookies["csrftoken"].value
+        )
+
+    def test_csrf_endpoint_does_not_accept_post(self):
+        self.assertEqual(self.client.post(reverse("accounts:csrf")).status_code, 405)
+        self.api.assert_not_called()
