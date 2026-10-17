@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ venue.name }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/venues.css' %}">{% endblock %}
+{% block body_class %}venue-page gym-detail-page{% endblock %}
+
+{% block content %}
+<a href="{% url 'venues:venue_map' %}" class="back-button">←</a>
+
+<div class="main-container">
+  {% for sport in venue.sports %}
+  <a href="{% url 'venues:sport_detail' venue.id sport.id %}" class="sport-card">
+    <div class="card-top-content">
+      <div class="card-title">{{ sport.name }}</div>
+      {% if sport.court_count %}
+        <div class="card-info"> {{ sport.court_count }} Court</div>
+      {% endif %}
+    </div>
+    {% if sport.book_first %}<div class="booking-badge">Book First</div>{% endif %}
+  </a>
+  {% endfor %}
+</div>
+{% endblock %}

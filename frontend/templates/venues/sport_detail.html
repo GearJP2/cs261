@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ sport.name }} - {{ venue.name }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/venues.css' %}">{% endblock %}
+{% block body_class %}venue-page gym-detail-page sport-page{% endblock %}
+
+{% block content %}
+<a href="{{ back_url }}" class="back-button">←</a>
+
+<div class="main-container">
+  <h1 class="sport-heading">{{ sport.name }}</h1>
+
+  {% for court in sport.courts %}
+  <div class="sub-card-item">
+    <div class="sub-img-placeholder"{% if sport.image %} style="background-image: url('{% static 'css/images/' %}{{ sport.image }}');"{% endif %}></div>
+    <div class="sub-info">
+      <div class="sub-name">{{ court }}</div>
+      <button type="button" class="select-btn">select</button>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
