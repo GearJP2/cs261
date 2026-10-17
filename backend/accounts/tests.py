@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
 from django.contrib.sessions.backends.db import SessionStore
 from django.db import IntegrityError, transaction
@@ -5,6 +7,7 @@ from django.test import TestCase
 from venues.models import Sport
 
 from .models import UniversityIdentity, UserProfile, UserSportInterest
+from .services import get_or_create_university_user
 
 
 class AccountPersistenceTests(TestCase):
@@ -77,3 +80,44 @@ class AccountSchemaTests(TestCase):
         self.assertFalse(UserProfile.objects.exists())
         self.assertFalse(UniversityIdentity.objects.exists())
         self.assertFalse(UserSportInterest.objects.exists())
+
+
+class UniversityUserCreationTests(TestCase):
+    def setUp(self):
+        self.data = {"subject": "student-123", "display_name": "Test Student", "type": "student"}
+
+    def test_first_login_creates_user_and_repeated_login_reuses_it(self):
+        first = get_or_create_university_user(self.data)
+        second = get_or_create_university_user(self.data)
+        self.assertEqual(first.pk, second.pk)
+        self.assertFalse(first.has_usable_password())
+        self.assertEqual(get_user_model().objects.count(), 1)
+        self.assertEqual(UniversityIdentity.objects.count(), 1)
+        self.assertEqual(UserProfile.objects.count(), 1)
+
+    def test_identity_conflict_reuses_winner_and_rolls_back_extra_user(self):
+        winner = get_or_create_university_user(self.data)
+        # Simulate the first lookup missing an identity committed by another request.
+        # The insert still hits the real database unique constraint.
+        real_filter = UniversityIdentity.objects.filter
+        with patch.object(UniversityIdentity.objects, "filter") as lookup:
+            lookup.return_value.first.return_value = None
+            lookup.side_effect = [
+                lookup.return_value,
+                real_filter(provider_key="tu", subject=self.data["subject"]),
+            ]
+            user = get_or_create_university_user(self.data)
+        self.assertEqual(user.pk, winner.pk)
+        self.assertEqual(get_user_model().objects.count(), 1)
+        self.assertEqual(UniversityIdentity.objects.count(), 1)
+        self.assertEqual(UserProfile.objects.count(), 1)
+
+    def test_unrelated_integrity_error_is_not_hidden(self):
+        with patch.object(
+            UniversityIdentity.objects, "create", side_effect=IntegrityError("other failure")
+        ):
+            with self.assertRaisesMessage(IntegrityError, "other failure"):
+                get_or_create_university_user(self.data)
+        self.assertEqual(get_user_model().objects.count(), 0)
+        self.assertEqual(UniversityIdentity.objects.count(), 0)
+        self.assertEqual(UserProfile.objects.count(), 0)
