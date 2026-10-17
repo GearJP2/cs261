@@ -1,11 +1,14 @@
+from datetime import timedelta
 from unittest.mock import patch
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.sessions.backends.db import SessionStore
+from django.contrib.sessions.models import Session
 from django.db import IntegrityError, transaction
 from django.test import Client, TestCase
 from django.urls import reverse
+from django.utils import timezone
 from venues.models import Sport
 
 from .models import UniversityIdentity, UserProfile, UserSportInterest
@@ -352,3 +355,44 @@ class UniversityLoginViewTests(TestCase):
         response = client.post(reverse("accounts:logout"), HTTP_X_CSRFTOKEN=token)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(client.get(reverse("accounts:me")).status_code, 401)
+
+    def test_expired_session_cannot_read_me_or_be_replayed(self):
+        self.post_login()
+        session_key = self.client.cookies[settings.SESSION_COOKIE_NAME].value
+        self.assertEqual(self.client.get(reverse("accounts:me")).status_code, 200)
+        Session.objects.filter(session_key=session_key).update(
+            expire_date=timezone.now() - timedelta(seconds=1)
+        )
+        self.api.reset_mock()
+        response = self.client.get(reverse("accounts:me"))
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json()["error"]["code"], "AUTH_REQUIRED")
+        replay = Client()
+        replay.cookies[settings.SESSION_COOKIE_NAME] = session_key
+        self.assertEqual(replay.get(reverse("accounts:me")).status_code, 401)
+        self.api.assert_not_called()
+
+    def test_login_rotates_preexisting_anonymous_session(self):
+        session = self.client.session
+        session["before_login"] = True
+        session.save()
+        old_key = session.session_key
+        self.assertEqual(self.post_login().status_code, 200)
+        new_key = self.client.cookies[settings.SESSION_COOKIE_NAME].value
+        self.assertNotEqual(new_key, old_key)
+        self.assertFalse(Session.objects.filter(session_key=old_key).exists())
+        self.assertIn("_auth_user_id", self.client.session)
+
+    def test_university_session_expires_24_hours_after_login_without_extension(self):
+        before = timezone.now()
+        response = self.post_login()
+        after = timezone.now()
+        self.assertEqual(response.status_code, 200)
+        session_key = self.client.cookies[settings.SESSION_COOKIE_NAME].value
+        session = Session.objects.get(session_key=session_key)
+        self.assertGreaterEqual(session.expire_date, before + timedelta(hours=24))
+        self.assertLessEqual(session.expire_date, after + timedelta(hours=24))
+        expiry = session.expire_date
+        self.assertEqual(self.client.get(reverse("accounts:me")).status_code, 200)
+        session.refresh_from_db()
+        self.assertEqual(session.expire_date, expiry)

@@ -1,8 +1,11 @@
 import json
+from datetime import timedelta
 
+from django.conf import settings
 from django.contrib.auth import login, logout
 from django.http import JsonResponse
 from django.middleware.csrf import get_token
+from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_GET, require_POST
@@ -74,6 +77,7 @@ def university_login(request):
         return _error("UNIVERSITY_API_UNAVAILABLE", "ไม่สามารถยืนยันบัญชีได้ กรุณาลองใหม่", 502)
 
     login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+    request.session.set_expiry(timezone.now() + timedelta(seconds=settings.UNIVERSITY_SESSION_AGE))
     request.session["university_identity_id"] = UniversityIdentity.objects.get(
         provider_key="tu", subject=identity_data["subject"], user=user
     ).pk
