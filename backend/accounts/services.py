@@ -67,7 +67,6 @@ def validate_university_response(result):
         "username",
         "displayname_th",
         "type",
-        "statusid",
     )
 
     for field in required_fields:
@@ -82,5 +81,5 @@ def validate_university_response(result):
         "subject": result["username"],
         "display_name": result["displayname_th"],
         "type": result["type"],
-        "status_id": result["statusid"],
     }
+
