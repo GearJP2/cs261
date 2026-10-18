@@ -10,6 +10,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_GET, require_POST
 
+from .decorators import require_university_user
 from .models import UniversityIdentity, UserProfile
 from .services import (
     UniversityAPIError,
@@ -86,23 +87,8 @@ def university_login(request):
 
 @require_GET
 @never_cache
+@require_university_user
 def current_user(request):
-    if not request.user.is_authenticated:
-        return _error("AUTH_REQUIRED", "กรุณาเข้าสู่ระบบ", 401)
-
-    if not request.user.is_active:
-        return _error("ACCOUNT_INACTIVE", "บัญชีนี้ถูกระงับการใช้งาน", 403)
-
-    identity = UniversityIdentity.objects.filter(
-        pk=request.session.get("university_identity_id"),
-        user=request.user,
-        provider_key="tu",
-        student_verified_at__isnull=False,
-        eligibility_checked_at__isnull=False,
-    ).first()
-    if identity is None:
-        return _error("FORBIDDEN", "กรุณายืนยันบัญชีมหาวิทยาลัย", 403)
-
     profile = UserProfile.objects.filter(user=request.user).first()
     if profile is None:
         return _error("FORBIDDEN", "ไม่พบข้อมูลโปรไฟล์ กรุณาเข้าสู่ระบบใหม่", 403)
