@@ -2,7 +2,7 @@
 
 US7 รวมสร้าง แก้ไข และยกเลิก Party ตามขอบเขตที่ตกลงล่าสุด แทนข้อเสนอเดิมที่แยกงานสร้างออกไป
 ตอนนี้มี Create service และ HTTP handler แต่ยังไม่เปิด route; รอเชื่อม guard จาก US1
-มี Cancel service และ handler แล้ว แต่ยังไม่เปิด route; PATCH ยังไม่พร้อม
+มี Edit/Cancel services และ handlers แล้ว แต่ยังไม่เปิด routes; รอเชื่อม guard จาก US1
 
 ## สร้าง Party
 
@@ -83,4 +83,15 @@ Tests ใน `test_cancellation_api.py` เรียก handler ผ่าน Req
 รวมค่ากับ Party เดิมแล้วตรวจ validation และ schedule ชุดเดียวกับ Create
 capacity ต่ำกว่า active memberships ให้ CAPACITY_TOO_SMALL (409); Pending ไม่จองที่
 Party เต็มยังแก้ได้ การแก้ไม่ลบ membership/request; changes ว่างตรวจข้อมูลแต่ไม่เขียน updated_at
-Tests ใน test_editing.py; ยังรอ PATCH handler, guard และ route integration
+Tests ใน test_editing.py; มี PATCH handler แล้ว; ยังรอ guard และ route integration
+
+## Edit handler (ยังไม่เปิด route)
+
+เตรียม `PATCH /api/v1/parties/{id}` รับ application/json object เฉพาะฟิลด์ที่อนุญาต
+ไม่บังคับส่งทุกฟิลด์ และไม่เติม default ให้ฟิลด์ที่ไม่ได้ส่ง; `{}` เป็น no-op เมื่อข้อมูลเดิมยังผ่าน validation
+starts_at/ends_at ที่ส่งต้องเป็น ISO 8601 พร้อม T และ timezone เช่นเดียวกับ Create
+handler ใช้ datetime parser ร่วมกับ Create แล้วส่ง changes ไป Edit service
+สำเร็จคืน 200 พร้อม Party data ชุดเดียวกับ GET; error ใช้ status/code/fields จาก service
+ผิด method คืน 405 พร้อม Allow: PATCH
+Tests ใน test_editing_api.py เรียก handler ผ่าน RequestFactory
+ยังไม่เปิด PATCH ใน party_detail หรือเพิ่ม route จนกว่าจะเชื่อม guard US1

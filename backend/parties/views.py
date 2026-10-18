@@ -9,11 +9,13 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 
 from .models import JoinRequest, Party
 from .services import (
+    PARTY_EDIT_FIELDS,
     JoinRequestError,
     PartyError,
     cancel_party,
     count_active_members,
     create_party,
+    edit_party,
     get_party_state,
     submit_join_request,
 )
@@ -118,6 +120,22 @@ def my_join_request(request, party_id):
     return JsonResponse({"data": data})
 
 
+def parse_party_datetimes(payload, fields):
+    """Parse supplied datetime fields; record errors without filling absent fields."""
+    for key in ("starts_at", "ends_at"):
+        if key not in payload:
+            continue
+        value = payload[key]
+        try:
+            parsed = parse_datetime(value) if isinstance(value, str) and "T" in value else None
+        except ValueError:
+            parsed = None
+        if parsed is None or timezone.is_naive(parsed):
+            fields[key] = "กรุณาระบุ ISO 8601 datetime พร้อม timezone"
+        else:
+            payload[key] = parsed
+
+
 # Integration TODO: apply the US1 university guard before registering a URL.
 # This handler expects request.user to have already passed that guard.
 @never_cache
@@ -139,18 +157,7 @@ def create_party_api(request):
     allowed = required | {"description"}
     fields = {key: "ไม่รองรับฟิลด์นี้" for key in payload.keys() - allowed}
     fields.update({key: "กรุณาระบุข้อมูล" for key in required - payload.keys()})
-    for key in ("starts_at", "ends_at"):
-        if key not in payload:
-            continue
-        value = payload[key]
-        try:
-            parsed = parse_datetime(value) if isinstance(value, str) and "T" in value else None
-        except ValueError:
-            parsed = None
-        if parsed is None or timezone.is_naive(parsed):
-            fields[key] = "กรุณาระบุ ISO 8601 datetime พร้อม timezone"
-        else:
-            payload[key] = parsed
+    parse_party_datetimes(payload, fields)
     if fields:
         return json_error("INVALID_INPUT", "ข้อมูลกิจกรรมไม่ถูกต้อง", 400, fields)
     payload.setdefault("description", "")
@@ -190,3 +197,30 @@ def cancel_party_api(request, party_id):
             }
         }
     )
+
+
+# Integration TODO: apply the US1 university guard before registering a URL.
+# This handler expects request.user to have already passed that guard.
+@never_cache
+def edit_party_api(request, party_id):
+    if request.method != "PATCH":
+        response = json_error("METHOD_NOT_ALLOWED", "รองรับเฉพาะ PATCH", 405)
+        response["Allow"] = "PATCH"
+        return response
+    if request.content_type != "application/json":
+        return json_error("INVALID_INPUT", "กรุณาส่งข้อมูลเป็น JSON", 400)
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return json_error("INVALID_INPUT", "รูปแบบ JSON ไม่ถูกต้อง", 400)
+    if not isinstance(payload, dict):
+        return json_error("INVALID_INPUT", "ข้อมูลต้องเป็น JSON object", 400)
+    fields = {key: "ไม่รองรับฟิลด์นี้" for key in payload.keys() - PARTY_EDIT_FIELDS}
+    parse_party_datetimes(payload, fields)
+    if fields:
+        return json_error("INVALID_INPUT", "ข้อมูลกิจกรรมไม่ถูกต้อง", 400, fields)
+    try:
+        party = edit_party(party_id=party_id, user=request.user, changes=payload)
+    except PartyError as error:
+        return json_error(error.code, error.message, error.status, error.fields)
+    return JsonResponse({"data": party_data(party, request.user)})
