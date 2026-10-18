@@ -1,0 +1,123 @@
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: #fff;
+  color: #1f2430;
+  font-family: "Prompt", sans-serif;
+}
+a { color: inherit; text-decoration: none; }
+.ico { width: 16px; height: 16px; flex: none; }
+.hp-wrap { max-width: 1160px; margin: 0 auto; padding: 0 24px; }
+
+/* navbar */
+.hp-nav { display: flex; align-items: center; justify-content: space-between; height: 80px; }
+.hp-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.3rem; }
+.hp-logo { width: 38px; height: 38px; border-radius: 10px; background: #1f2430; color: #fff; display: grid; place-items: center; }
+.hp-links { display: flex; gap: 32px; height: 100%; }
+.hp-links a {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  font-size: .95rem;
+  color: #555;
+  border-bottom: 3px solid transparent;
+  transition: color .2s ease, border-color .2s ease;
+}
+.hp-links a:hover { color: #1f2430; border-bottom-color: #1f2430; }
+.hp-links:hover a.active:not(:hover) {
+  border-bottom-color: transparent;
+  color: #555;
+}
+.hp-avatar { width: 38px; height: 38px; border-radius: 50%; background: #f5c451; display: grid; place-items: center; font-weight: 600; }
+
+/* hero */
+.hp-hero { padding: 40px 0 56px; }
+.hp-pill { display: inline-block; background: #fdf3d6; border-radius: 999px; padding: 6px 14px; font-size: .8rem; }
+.hp-hero h1 { font-size: clamp(2rem, 5vw, 3.2rem); line-height: 1.2; margin: 24px 0 20px; }
+.hp-hero p { color: #555; line-height: 1.8; margin: 0 0 28px; }
+.hp-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #1f2430;
+  color: #fff;
+  padding: 14px 22px;
+  border-radius: 10px;
+  font-weight: 500;
+  transition: background .2s ease;
+}
+.hp-cta:hover { background: #343b4d; }
+.hp-note { margin-top: 14px; font-size: .8rem; color: #777; }
+
+/* ปาร์ตี้ */
+.hp-parties { background: #f4f5f7; padding: 36px 0 56px; }
+.hp-head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 20px; }
+.hp-head h2 { margin: 0 0 4px; font-size: 1.6rem; }
+.hp-head p { margin: 0; color: #777; font-size: .9rem; }
+.hp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+.hp-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid #ececec;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: box-shadow .2s ease, transform .2s ease;
+}
+.hp-card:hover { box-shadow: 0 8px 20px rgba(0, 0, 0, .08); transform: translateY(-2px); }
+.hp-card-top { display: flex; justify-content: space-between; align-items: center; font-size: .75rem; }
+.hp-tag { background: #fdf3d6; border-radius: 6px; padding: 4px 10px; font-weight: 500; }
+.hp-open { color: #3aa76d; }
+.hp-card h3 { margin: 4px 0; font-size: 1.15rem; }
+.hp-row { display: flex; align-items: center; gap: 8px; font-size: .8rem; color: #555; }
+.hp-host { display: flex; justify-content: space-between; font-size: .8rem; color: #777; margin-top: 4px; }
+.hp-card-foot { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 16px; margin-top: auto; color: #3aa76d; font-size: .85rem; }
+.hp-join {
+  background: #f5c451;
+  color: #1f2430;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-weight: 500;
+  font-size: .85rem;
+  transition: background .2s ease;
+}
+.hp-join:hover { background: #f0b930; }
+
+/* แบนเนอร์สนาม */
+.hp-venue { background: #fdf6e0; border-radius: 20px; margin-top: 40px; padding: 24px; display: grid; grid-template-columns: 1.1fr 1fr; gap: 40px; align-items: center; }
+.hp-venue-img {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #e3ecd9;
+}
+.hp-venue-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+.hp-venue small { font-size: .8rem; }
+.hp-venue h2 { margin: 10px 0 14px; font-size: 1.8rem; }
+.hp-venue p { color: #555; line-height: 1.8; margin: 0 0 22px; }
+.hp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #f5c451;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-weight: 500;
+  transition: background .2s ease;
+}
+.hp-btn:hover { background: #f0b930; }
+
+.hp-footer { text-align: center; color: #777; font-size: .85rem; padding: 28px 0; border-top: 1px solid #eee; }
+
+@media (max-width: 900px) {
+  .hp-grid, .hp-venue { grid-template-columns: 1fr; }
+  .hp-links { display: none; }
+}
