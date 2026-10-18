@@ -1,10 +1,85 @@
-{% extends "base.html" %}
+{% load static %}
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UniSport Buddy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/site.css' %}">
+  <link rel="stylesheet" href="{% static 'css/navbar.css' %}">
+  <link rel="stylesheet" href="{% static 'css/home.css' %}">
+</head>
+<body>
 
-{% block content %}
-<section class="welcome" aria-labelledby="welcome-title">
-  <p class="brand">UniSport Buddy</p>
-  <h1 id="welcome-title">หาเพื่อนเล่นกีฬา<br>ในมหาวิทยาลัย</h1>
-  <p>พื้นที่นัดหมายกิจกรรมสำหรับนักศึกษาธรรมศาสตร์</p>
-  <p class="notice">กำลังเตรียมเปิดให้ใช้งาน</p>
-</section>
-{% endblock %}
+  {% include "partials/navbar.html" with active="home" show_create=False %}
+
+  <div class="hp-wrap">
+    <section class="hp-hero">
+      <span class="hp-pill">✨ เพื่อนใหม่ แมตช์ใหม่ ในรั้วมหาวิทยาลัย</span>
+      <h1>หาเพื่อนเล่นกีฬาในมหาวิทยาลัย</h1>
+      <p>ชวนเพื่อนมาออกแรง เติมความสนุกหลังเลิกเรียน<br>เลือกกีฬาที่ชอบ แล้วเจอกันที่สนาม ไม่ต้องเก่งก็เล่นด้วยกันได้</p>
+      <a href="#" class="hp-cta">＋ สร้างปาร์ตี้</a>
+      <div class="hp-note">✔ สำหรับนักศึกษา มธ.</div>
+    </section>
+  </div>
+
+  <section class="hp-parties">
+    <div class="hp-wrap">
+      <div class="hp-head">
+        <div>
+          <h2>ปาร์ตี้ที่กำลังเปิดรับ</h2>
+          <p>ยังมีที่ว่างสำหรับคุณ เลือกแล้วไปเล่นด้วยกันเลย</p>
+        </div>
+        <a href="#">ดูทั้งหมด →</a>
+      </div>
+
+      {# TODO: ต่อกับข้อมูลจริงของ parties แทนข้อมูลตัวอย่างนี้ #}
+      <div class="hp-grid">
+        <article class="hp-card">
+          <div class="hp-card-top"><span class="hp-tag">แบดมินตัน</span><span class="hp-open">● เปิดรับอยู่</span></div>
+          <h3>ตีแบดหลังเลิกเรียน ชิล ๆ</h3>
+          <div class="hp-row">📍 ยิมเนเซียม 4 · สนามแบดมินตัน</div>
+          <div class="hp-row">📅 วันนี้ · 17:00–19:00 น.</div>
+          <div class="hp-host"><span>ชวนโดย พลอย</span><span>4/6 คน</span></div>
+          <div class="hp-card-foot"><span>เหลือ 2 ที่</span><a href="#" class="hp-join">เข้าร่วม</a></div>
+        </article>
+
+        <article class="hp-card">
+          <div class="hp-card-top"><span class="hp-tag">เทนนิส</span><span class="hp-open">● เปิดรับอยู่</span></div>
+          <h3>หาเพื่อนตีเทนนิสยามเย็น</h3>
+          <div class="hp-row">📍 สนามเทนนิส · ศูนย์กีฬาธรรมศาสตร์</div>
+          <div class="hp-row">📅 พรุ่งนี้ · 16:00–18:00 น.</div>
+          <div class="hp-host"><span>ชวนโดย นนท์</span><span>2/4 คน</span></div>
+          <div class="hp-card-foot"><span>เหลือ 2 ที่</span><a href="#" class="hp-join">เข้าร่วม</a></div>
+        </article>
+
+        <article class="hp-card">
+          <div class="hp-card-top"><span class="hp-tag">พิกเคิลบอล</span><span class="hp-open">● เปิดรับอยู่</span></div>
+          <h3>มือใหม่มาลองพิกเคิลบอลกัน</h3>
+          <div class="hp-row">📍 สนามอเนกประสงค์ · ศูนย์รังสิต</div>
+          <div class="hp-row">📅 วันศุกร์ · 17:00–18:30 น.</div>
+          <div class="hp-host"><span>ชวนโดย มิน</span><span>2/4 คน</span></div>
+          <div class="hp-card-foot"><span>เหลือ 2 ที่</span><a href="#" class="hp-join">เข้าร่วม</a></div>
+        </article>
+      </div>
+
+      <div class="hp-venue">
+        <div class="hp-venue-img">
+          <img src="{% static 'css/image/mapshow.png' %}" alt="แผนที่สนามกีฬา มธ.">
+        </div>
+        <div>
+          <small>รู้ก่อนเล่น วางแผนก่อนชวน</small>
+          <h2>ดูสนามและเวลาเปิด–ปิด</h2>
+          <p>ค้นหาสนามใน มธ. ศูนย์รังสิต เช็กเวลาให้พร้อม<br>แล้วนัดเพื่อนไปเล่นกีฬาด้วยกัน</p>
+          <a href="#" class="hp-btn">🗺 ดูแผนที่สนาม</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="hp-footer">CS261 UniSport Buddy</footer>
+
+</body>
+</html>
