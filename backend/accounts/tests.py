@@ -1,19 +1,22 @@
 import io
 import json
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from urllib.error import HTTPError, URLError
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AnonymousUser
 from django.contrib.sessions.backends.db import SessionStore
 from django.contrib.sessions.models import Session
 from django.db import IntegrityError, transaction
-from django.test import Client, SimpleTestCase, TestCase, override_settings
+from django.http import JsonResponse
+from django.test import Client, RequestFactory, SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from venues.models import Sport
 
+from .decorators import require_university_user
 from .models import UniversityIdentity, UserProfile, UserSportInterest
 from .services import (
     UniversityAPIError,
@@ -549,3 +552,66 @@ class UniversityResponseValidationTests(SimpleTestCase):
 
     def test_student_type_is_accepted(self):
         validate_student_eligibility(validate_university_response(self.valid))
+
+
+class UniversityGuardTests(TestCase):
+    def setUp(self):
+        self.user = get_or_create_university_user(
+            {"subject": "guard-student", "display_name": "Guard Student", "type": "student"}
+        )
+        self.identity = UniversityIdentity.objects.get(user=self.user)
+        self.request = RequestFactory().get("/example-api")
+        self.request.user = self.user
+        self.request.session = {"university_identity_id": self.identity.pk}
+        self.view = Mock(return_value=JsonResponse({"data": "allowed"}))
+        self.guarded = require_university_user(self.view)
+
+    def assert_denied(self, status):
+        response = self.guarded(self.request)
+        self.assertEqual(response.status_code, status)
+        self.view.assert_not_called()
+
+    def test_anonymous_user_never_reaches_view(self):
+        self.request.user = AnonymousUser()
+        self.assert_denied(401)
+
+    def test_inactive_user_never_reaches_view(self):
+        self.user.is_active = False
+        self.assert_denied(403)
+
+    def test_missing_or_invalid_identity_marker_is_forbidden(self):
+        for value in (None, "invalid", [], {}, True, -1, 0):
+            with self.subTest(value=value):
+                self.request.session["university_identity_id"] = value
+                self.assert_denied(403)
+
+    def test_foreign_identity_is_forbidden(self):
+        self.request.user = get_user_model().objects.create_user(username="outsider")
+        self.assert_denied(403)
+
+    def test_unverified_identity_is_forbidden(self):
+        for field in ("student_verified_at", "eligibility_checked_at"):
+            with self.subTest(field=field):
+                previous = getattr(self.identity, field)
+                setattr(self.identity, field, None)
+                self.identity.save(update_fields=[field])
+                self.assert_denied(403)
+                setattr(self.identity, field, previous)
+                self.identity.save(update_fields=[field])
+
+    def test_wrong_provider_is_forbidden(self):
+        self.identity.provider_key = "other"
+        self.identity.save(update_fields=["provider_key"])
+        self.assert_denied(403)
+
+    def test_guard_passes_arguments_and_exposes_verified_identity(self):
+        response = self.guarded(self.request, 12, action="join")
+        self.assertEqual(response.status_code, 200)
+        self.view.assert_called_once_with(self.request, 12, action="join")
+        self.assertEqual(self.request.university_identity.pk, self.identity.pk)
+
+    def test_decorator_preserves_view_name(self):
+        def example_view(request):
+            return JsonResponse({"data": True})
+
+        self.assertEqual(require_university_user(example_view).__name__, "example_view")
