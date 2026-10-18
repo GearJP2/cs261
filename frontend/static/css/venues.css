@@ -224,3 +224,74 @@ body.gym-detail-page {
   color: #333;
   white-space: nowrap;
 }
+
+
+
+.yellow-building .sport-menu {
+  display: none;
+  position: absolute;
+  inset: 0;
+  padding: 6%;
+  box-sizing: border-box;
+  z-index: 30;
+}
+.yellow-building .sport-menu ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: 1fr;
+  gap: 8%;
+}
+.yellow-building .sport-menu li { min-width: 0; min-height: 0; }
+.yellow-building .sport-menu a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.18);
+  color: #233f35;
+  font-size: clamp(0.45rem, 0.8vw, 0.75rem);
+  line-height: 1.1;
+  text-align: center;
+  text-decoration: none;
+}
+.yellow-building .sport-menu a span { font-size: 1.6em; line-height: 1; }
+.yellow-building .sport-menu a:hover { background: #fff7e0; }
+.yellow-building .sport-menu a:active { box-shadow: none; transform: translateY(3px); }
+
+.yellow-building:hover .sport-menu,
+.yellow-building:focus-within .sport-menu { display: block; }
+
+.yellow-building.has-menu { cursor: default; }
+.yellow-building.has-menu:active { transform: none; box-shadow: 0 10px 0 #db835f; }
+.yellow-building.has-menu:hover .building-info { display: none; }
+
+.yellow-building .building-name {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 2px;
+  font-size: clamp(0.45rem, 0.75vw, 0.8rem);
+  font-weight: 600;
+  line-height: 1.15;
+  color: #233f35;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+.yellow-building:hover .building-name,
+.yellow-building:focus-within .building-name { display: none; }

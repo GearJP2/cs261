@@ -89,10 +89,7 @@ def sport_detail(request, venue_id, sport_id):
     hours = venue_obj.opening_hours.order_by("weekday", "opens_at")
 
     # A single-sport venue skips its venue page, so go back to the map
-    if len(venue["sports"]) > 1:
-        back_url = reverse("venues:venue_detail", args=[venue_id])
-    else:
-        back_url = reverse("venues:venue_map")
+    back_url = reverse("venues:venue_map")
     return render(
         request,
         "venues/sport_detail.html",
