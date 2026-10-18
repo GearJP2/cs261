@@ -95,3 +95,16 @@ handler ใช้ datetime parser ร่วมกับ Create แล้วส�
 ผิด method คืน 405 พร้อม Allow: PATCH
 Tests ใน test_editing_api.py เรียก handler ผ่าน RequestFactory
 ยังไม่เปิด PATCH ใน party_detail หรือเพิ่ม route จนกว่าจะเชื่อม guard US1
+
+## Edit concurrency tests
+
+`test_editing_concurrency.py` ใช้ TransactionTestCase และ PostgreSQL connections แยกจริง
+ตรวจ `pg_backend_pid() = ANY(pg_blocking_pids(worker_pid))` เพื่อยืนยันว่า worker
+รอ Party lock ของ transaction หลัก มี lock timeout และ future/queue timeout ป้องกันค้าง
+
+ครอบคลุม Cancel commit ก่อน Edit (ปฏิเสธ) และ Edit commit ก่อน Cancel (คงค่าที่แก้),
+Edit ลดความจุจนเต็มก่อน Join (ปฏิเสธ) และ Join commit ก่อน Edit (Pending เดิมยังอยู่),
+partial edits พร้อมกันรวมข้อมูลล่าสุดโดยไม่ทับฟิลด์ที่ไม่ได้ส่ง,
+อ่านนาฬิกาหลังได้ lock และตรวจจำนวนสมาชิกที่ commit ระหว่างรอใหม่
+กรณีสมาชิกเพิ่มจำลอง writer ที่ล็อก Party ก่อนตามสัญญา ไม่ใช่ implementation ของ US10
+เป็น service concurrency tests ไม่รวม HTTP/auth integration
