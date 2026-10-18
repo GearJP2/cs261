@@ -4,6 +4,7 @@ from datetime import datetime
 
 from django.db import transaction
 from django.utils import timezone
+from venues.services import ScheduleError, validate_party_schedule
 
 from .models import JoinRequest, Party, PartyMembership
 
@@ -61,7 +62,7 @@ def create_party(
     """Validate basic fields and persist Party and Host membership together.
 
     The caller must supply the authenticated user and parsed datetimes.
-    Shared US9 schedule checks must be integrated before exposing an API.
+    Validate the full schedule with the shared US9 rules before writing.
     """
     fields = {}
     if not isinstance(title, str) or not title.strip() or len(title.strip()) > 150:
@@ -82,6 +83,11 @@ def create_party(
         fields["ends_at"] = "เวลาสิ้นสุดต้องอยู่หลังเวลาเริ่ม"
     if fields:
         raise PartyError("INVALID_TIME_RANGE", "ช่วงเวลาไม่ถูกต้อง", fields=fields)
+
+    try:
+        validate_party_schedule(sport_id, venue_id, starts_at, ends_at)
+    except ScheduleError as error:
+        raise PartyError(error.code, error.message, error.status, error.fields) from error
 
     party = Party.objects.create(
         host=user,
