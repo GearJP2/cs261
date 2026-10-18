@@ -14,8 +14,8 @@ def profile_view(request, id):
     profile = {
         "name": "สมชาย ใจดี", 
         "credit": 85,
-        "interests": ["แบดมินตัน", "บาสเกตบอล"],
-        "avatar_url": None,
+        "interests":["แบดมินตัน", "บาสเกตบอล"],
+        "avatar_url":None,
     }
     return render(request, "profile.html", {"profile": profile})
 
