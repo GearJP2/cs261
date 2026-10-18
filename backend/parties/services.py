@@ -3,7 +3,7 @@
 from django.db import transaction
 from django.utils import timezone
 
-from .models import JoinRequest, Party
+from .models import JoinRequest, Party, PartyMembership
 
 
 class JoinRequestError(Exception):
@@ -33,6 +33,37 @@ def get_party_state(party, now=None, *, member_count=None):
     if member_count >= party.capacity:
         return "Full"
     return "Open"
+
+
+@transaction.atomic
+def create_party(
+    *,
+    user,
+    title,
+    description,
+    sport_id,
+    venue_id,
+    starts_at,
+    ends_at,
+    capacity,
+):
+    """Persist a validated Party and its Host membership together.
+
+    The caller must supply the authenticated user and validated data, including
+    the shared US9 schedule checks, before exposing this through an API.
+    """
+    party = Party.objects.create(
+        host=user,
+        title=title,
+        description=description,
+        sport_id=sport_id,
+        venue_id=venue_id,
+        starts_at=starts_at,
+        ends_at=ends_at,
+        capacity=capacity,
+    )
+    PartyMembership.objects.create(party=party, user=user)
+    return party
 
 
 @transaction.atomic
