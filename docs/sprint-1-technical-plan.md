@@ -178,6 +178,8 @@ PATCH ต้องรวมค่าที่ส่งกับข้อมู�
 
 **เพิ่ม scope 2026-10-17:** สร้าง Party อยู่ใน US7; estimate เดิม 8 points ต้องประเมินใหม่
 
+Contract และสถานะ implementation: [US7 Backend API](us7-b-api.md)
+
 - [ ] **US7-D-02** วี + กอล์ฟ: ออกแบบฟอร์มสร้างชื่อ/คำอธิบาย/กีฬา/สนาม/เวลาเริ่ม–สิ้นสุด/ความจุ ใช้ component US9 พร้อม loading/errors และ contract API-11
 - [ ] **US7-B-03** กอล์ฟ + พี (โกลตรวจ DB): implement API-11; login + active account + CSRF; allowlist เช่น API-08; ทุกฟิลด์จำเป็นยกเว้น description default ว่าง; ปฏิเสธ host_id/read-only/unknown fields; capacity เป็น integer ≥ 1, starts_at > now และ ends_at > starts_at; ใช้ US9 ตรวจสนาม/กีฬา/เวลา สร้าง Party + active membership ของ Host ใน transaction เดียว คืน 201 แบบ API-02; rollback ทั้งคู่เมื่อผิดพลาด
 - [ ] **US7-F-02** วี + เนท: เชื่อมฟอร์มสร้างกับ API-03/04/05/11; ปิดปุ่มระหว่างส่ง; เมื่อผิดพลาดคงข้อมูลและแสดง error; เมื่อสำเร็จไป Party detail จาก id ที่ API คืน

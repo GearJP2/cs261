@@ -3,16 +3,45 @@ import json
 from core.api import json_error, require_authenticated_api
 from django.http import JsonResponse
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import ensure_csrf_cookie
 
 from .models import JoinRequest, Party
 from .services import (
     JoinRequestError,
+    PartyError,
     count_active_members,
+    create_party,
     get_party_state,
     submit_join_request,
 )
+
+
+def party_data(party, user):
+    profile = getattr(party.host, "profile", None)
+    member_count = count_active_members(party)
+    return {
+        "id": party.pk,
+        "title": party.title,
+        "description": party.description,
+        "host": {
+            "id": party.host_id,
+            # Legacy/local accounts may not have a profile. Never expose
+            # their login identifier as a replacement display name.
+            "display_name": profile.display_name if profile else "ผู้จัดกิจกรรม",
+        },
+        "sport_id": party.sport_id,
+        "venue_id": party.venue_id,
+        "starts_at": timezone.localtime(party.starts_at).isoformat(),
+        "ends_at": timezone.localtime(party.ends_at).isoformat(),
+        "capacity": party.capacity,
+        "member_count": member_count,
+        "remaining_slots": party.capacity - member_count,
+        "state": get_party_state(party, member_count=member_count),
+        "is_host": user.pk == party.host_id,
+        "is_member": party.memberships.filter(user=user, left_at__isnull=True).exists(),
+    }
 
 
 @never_cache
@@ -28,35 +57,7 @@ def party_detail(request, party_id):
     except Party.DoesNotExist:
         return json_error("NOT_FOUND", "ไม่พบกิจกรรมที่ต้องการ", 404)
 
-    profile = getattr(party.host, "profile", None)
-    member_count = count_active_members(party)
-    return JsonResponse(
-        {
-            "data": {
-                "id": party.pk,
-                "title": party.title,
-                "description": party.description,
-                "host": {
-                    "id": party.host_id,
-                    # Legacy/local accounts may not have a profile. Never expose
-                    # their login identifier as a replacement display name.
-                    "display_name": profile.display_name if profile else "ผู้จัดกิจกรรม",
-                },
-                "sport_id": party.sport_id,
-                "venue_id": party.venue_id,
-                "starts_at": timezone.localtime(party.starts_at).isoformat(),
-                "ends_at": timezone.localtime(party.ends_at).isoformat(),
-                "capacity": party.capacity,
-                "member_count": member_count,
-                "remaining_slots": party.capacity - member_count,
-                "state": get_party_state(party, member_count=member_count),
-                "is_host": request.user.pk == party.host_id,
-                "is_member": party.memberships.filter(
-                    user=request.user, left_at__isnull=True
-                ).exists(),
-            }
-        }
-    )
+    return JsonResponse({"data": party_data(party, request.user)})
 
 
 @never_cache
@@ -114,3 +115,46 @@ def my_join_request(request, party_id):
             "created_at": timezone.localtime(join_request.created_at).isoformat(),
         }
     return JsonResponse({"data": data})
+
+
+# Integration TODO: apply the US1 university guard before registering a URL.
+# This handler expects request.user to have already passed that guard.
+@never_cache
+def create_party_api(request):
+    if request.method != "POST":
+        response = json_error("METHOD_NOT_ALLOWED", "รองรับเฉพาะ POST", 405)
+        response["Allow"] = "POST"
+        return response
+    if request.content_type != "application/json":
+        return json_error("INVALID_INPUT", "กรุณาส่งข้อมูลเป็น JSON", 400)
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return json_error("INVALID_INPUT", "รูปแบบ JSON ไม่ถูกต้อง", 400)
+    if not isinstance(payload, dict):
+        return json_error("INVALID_INPUT", "ข้อมูลต้องเป็น JSON object", 400)
+
+    required = {"title", "sport_id", "venue_id", "starts_at", "ends_at", "capacity"}
+    allowed = required | {"description"}
+    fields = {key: "ไม่รองรับฟิลด์นี้" for key in payload.keys() - allowed}
+    fields.update({key: "กรุณาระบุข้อมูล" for key in required - payload.keys()})
+    for key in ("starts_at", "ends_at"):
+        if key not in payload:
+            continue
+        value = payload[key]
+        try:
+            parsed = parse_datetime(value) if isinstance(value, str) and "T" in value else None
+        except ValueError:
+            parsed = None
+        if parsed is None or timezone.is_naive(parsed):
+            fields[key] = "กรุณาระบุ ISO 8601 datetime พร้อม timezone"
+        else:
+            payload[key] = parsed
+    if fields:
+        return json_error("INVALID_INPUT", "ข้อมูลกิจกรรมไม่ถูกต้อง", 400, fields)
+    payload.setdefault("description", "")
+    try:
+        party = create_party(user=request.user, **payload)
+    except PartyError as error:
+        return json_error(error.code, error.message, error.status, error.fields)
+    return JsonResponse({"data": party_data(party, request.user)}, status=201)
