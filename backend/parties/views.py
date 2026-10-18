@@ -11,6 +11,7 @@ from .models import JoinRequest, Party
 from .services import (
     JoinRequestError,
     PartyError,
+    cancel_party,
     count_active_members,
     create_party,
     get_party_state,
@@ -158,3 +159,34 @@ def create_party_api(request):
     except PartyError as error:
         return json_error(error.code, error.message, error.status, error.fields)
     return JsonResponse({"data": party_data(party, request.user)}, status=201)
+
+
+# Integration TODO: apply the US1 university guard before registering a URL.
+# This handler expects request.user to have already passed that guard.
+@never_cache
+def cancel_party_api(request, party_id):
+    if request.method != "POST":
+        response = json_error("METHOD_NOT_ALLOWED", "รองรับเฉพาะ POST", 405)
+        response["Allow"] = "POST"
+        return response
+    if request.content_type != "application/json":
+        return json_error("INVALID_INPUT", "กรุณาส่ง JSON object ว่าง", 400)
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return json_error("INVALID_INPUT", "รูปแบบ JSON ไม่ถูกต้อง", 400)
+    if not isinstance(payload, dict) or payload:
+        return json_error("INVALID_INPUT", "รับเฉพาะ JSON object ว่าง", 400)
+    try:
+        party = cancel_party(party_id=party_id, user=request.user)
+    except PartyError as error:
+        return json_error(error.code, error.message, error.status, error.fields)
+    return JsonResponse(
+        {
+            "data": {
+                "id": party.pk,
+                "state": "Cancelled",
+                "cancelled_at": timezone.localtime(party.cancelled_at).isoformat(),
+            }
+        }
+    )

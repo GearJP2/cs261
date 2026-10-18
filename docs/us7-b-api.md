@@ -2,7 +2,7 @@
 
 US7 รวมสร้าง แก้ไข และยกเลิก Party ตามขอบเขตที่ตกลงล่าสุด แทนข้อเสนอเดิมที่แยกงานสร้างออกไป
 ตอนนี้มี Create service และ HTTP handler แต่ยังไม่เปิด route; รอเชื่อม guard จาก US1
-มี Cancel service แล้ว แต่ยังไม่มี Cancel handler/route; PATCH ยังไม่พร้อม
+มี Cancel service และ handler แล้ว แต่ยังไม่เปิด route; PATCH ยังไม่พร้อม
 
 ## สร้าง Party
 
@@ -60,4 +60,14 @@ Tests อยู่ใน `backend/parties/test_creation.py` และ `test_crea
 ครั้งแรกอ่านเวลาหลังได้ lock และต้องก่อน starts_at มิฉะนั้น PARTY_STARTED (409)
 Party เต็มยังยกเลิกได้ บันทึก cancelled_at และ updated_at โดยเก็บ membership/request ไว้
 ทดสอบด้วย `test_cancellation.py` รวม PostgreSQL lock wait และยกเลิกพร้อมกัน
-ยังรอ handler, university guard และ route integration
+ยังรอ university guard และ route integration
+
+## Cancel handler (ยังไม่เปิด route)
+
+เตรียม `POST /api/v1/parties/{id}/cancel` รับ application/json body `{}` เท่านั้น
+ไม่รับ client-selected actor/status หรือข้อมูลอื่น สำเร็จคืน 200
+`{"data":{"id":1,"state":"Cancelled","cancelled_at":"..."}}`
+เรียกซ้ำคืน timestamp เดิม ผิด method คืน 405 พร้อม Allow: POST
+ผิด body คืน INVALID_INPUT (400); service errors ใช้ code/status เดิม
+Tests ใน `test_cancellation_api.py` เรียก handler ผ่าน RequestFactory เท่านั้น
+ยังไม่ได้ตรวจ session/CSRF ผ่าน URL จริง ต้องใส่ guard US1 ก่อนเปิด route
