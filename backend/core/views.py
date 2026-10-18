@@ -10,6 +10,17 @@ def home(request):
 
 
 @require_GET
+def profile_view(request, id):
+    profile = {
+        "name": "สมชาย ใจดี", 
+        "credit": 85,
+        "interests": ["แบดมินตัน", "บาสเกตบอล"],
+        "avatar_url": None,
+    }
+    return render(request, "profile.html", {"profile": profile})
+
+
+@require_GET
 def live(request):
     return JsonResponse({"status": "ok"})
 
