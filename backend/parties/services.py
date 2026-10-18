@@ -1,9 +1,20 @@
 """Shared Party rules. Writers must lock Party before requests/memberships."""
 
+from datetime import datetime
+
 from django.db import transaction
 from django.utils import timezone
 
 from .models import JoinRequest, Party, PartyMembership
+
+
+class PartyError(Exception):
+    def __init__(self, code, message, status=400, fields=None):
+        super().__init__(message)
+        self.code = code
+        self.message = message
+        self.status = status
+        self.fields = fields
 
 
 class JoinRequestError(Exception):
@@ -47,14 +58,34 @@ def create_party(
     ends_at,
     capacity,
 ):
-    """Persist a validated Party and its Host membership together.
+    """Validate basic fields and persist Party and Host membership together.
 
-    The caller must supply the authenticated user and validated data, including
-    the shared US9 schedule checks, before exposing this through an API.
+    The caller must supply the authenticated user and parsed datetimes.
+    Shared US9 schedule checks must be integrated before exposing an API.
     """
+    fields = {}
+    if not isinstance(title, str) or not title.strip() or len(title.strip()) > 150:
+        fields["title"] = "กรุณาระบุชื่อกิจกรรมไม่เกิน 150 ตัวอักษร"
+    if not isinstance(description, str) or len(description) > 2000:
+        fields["description"] = "รายละเอียดต้องเป็นข้อความไม่เกิน 2,000 ตัวอักษร"
+    if type(capacity) is not int or capacity < 1:
+        fields["capacity"] = "จำนวนผู้เข้าร่วมต้องเป็นจำนวนเต็มตั้งแต่ 1 ขึ้นไป"
+    for field, value in (("starts_at", starts_at), ("ends_at", ends_at)):
+        if not isinstance(value, datetime) or timezone.is_naive(value):
+            fields[field] = "กรุณาระบุวันเวลาที่มี timezone"
+    if fields:
+        raise PartyError("INVALID_INPUT", "ข้อมูลกิจกรรมไม่ถูกต้อง", fields=fields)
+
+    if starts_at <= timezone.now():
+        fields["starts_at"] = "เวลาเริ่มกิจกรรมต้องอยู่ในอนาคต"
+    if ends_at <= starts_at:
+        fields["ends_at"] = "เวลาสิ้นสุดต้องอยู่หลังเวลาเริ่ม"
+    if fields:
+        raise PartyError("INVALID_TIME_RANGE", "ช่วงเวลาไม่ถูกต้อง", fields=fields)
+
     party = Party.objects.create(
         host=user,
-        title=title,
+        title=title.strip(),
         description=description,
         sport_id=sport_id,
         venue_id=venue_id,
