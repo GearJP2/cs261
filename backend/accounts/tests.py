@@ -1,6 +1,8 @@
 import io
 import json
+from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
+from threading import Barrier
 from unittest.mock import Mock, patch
 from urllib.error import HTTPError, URLError
 
@@ -9,9 +11,16 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.sessions.backends.db import SessionStore
 from django.contrib.sessions.models import Session
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, connections, transaction
 from django.http import JsonResponse
-from django.test import Client, RequestFactory, SimpleTestCase, TestCase, override_settings
+from django.test import (
+    Client,
+    RequestFactory,
+    SimpleTestCase,
+    TestCase,
+    TransactionTestCase,
+    override_settings,
+)
 from django.urls import reverse
 from django.utils import timezone
 from venues.models import Sport
@@ -617,3 +626,68 @@ class UniversityGuardTests(TestCase):
             return JsonResponse({"data": True})
 
         self.assertEqual(require_university_user(example_view).__name__, "example_view")
+
+
+class ConcurrentUniversityUserCreationTests(TransactionTestCase):
+    def test_simultaneous_first_logins_reuse_one_user_across_connections(self):
+        if connections["default"].vendor != "postgresql":
+            self.skipTest("This concurrency test requires PostgreSQL")
+
+        barrier = Barrier(2, timeout=10)
+        data = {
+            "subject": "concurrent-student",
+            "display_name": "Concurrent Student",
+            "type": "student",
+        }
+        table = UniversityIdentity._meta.db_table
+
+        def login_in_separate_connection():
+            # Django connections are thread-local. Each worker opens its own connection.
+            connection = connections["default"]
+            first_lookup = True
+            missing_lookups = 0
+            identity_conflicts = 0
+
+            def synchronize_first_lookup(execute, sql, params, many, context):
+                nonlocal first_lookup, missing_lookups, identity_conflicts
+                try:
+                    result = execute(sql, params, many, context)
+                except IntegrityError:
+                    if sql.lstrip().upper().startswith("INSERT") and table in sql:
+                        identity_conflicts += 1
+                    raise
+                if first_lookup and sql.lstrip().upper().startswith("SELECT") and table in sql:
+                    first_lookup = False
+                    # The real SELECT has finished against an empty table. Neither
+                    # worker may start creating until both SELECTs have completed.
+                    missing_lookups += 1
+                    barrier.wait()
+                return result
+
+            try:
+                with connection.cursor() as cursor:
+                    cursor.execute("SET lock_timeout = '10s'")
+                    cursor.execute("SET statement_timeout = '15s'")
+                    cursor.execute("SELECT pg_backend_pid()")
+                    backend_pid = cursor.fetchone()[0]
+                with connection.execute_wrapper(synchronize_first_lookup):
+                    user = get_or_create_university_user(data)
+                return user.pk, backend_pid, missing_lookups, identity_conflicts
+            finally:
+                connection.close()
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            futures = [executor.submit(login_in_separate_connection) for _ in range(2)]
+            results = [future.result(timeout=30) for future in futures]
+
+        self.assertNotEqual(results[0][1], results[1][1])
+        self.assertEqual([result[2] for result in results], [1, 1])
+        self.assertEqual(sum(result[3] for result in results), 1)
+        self.assertEqual(results[0][0], results[1][0])
+        self.assertEqual(get_user_model().objects.count(), 1)
+        self.assertEqual(UniversityIdentity.objects.count(), 1)
+        self.assertEqual(UserProfile.objects.count(), 1)
+        identity = UniversityIdentity.objects.get(provider_key="tu", subject=data["subject"])
+        self.assertEqual(identity.user_id, results[0][0])
+        self.assertEqual(identity.user.profile.display_name, data["display_name"])
+        self.assertFalse(identity.user.has_usable_password())
