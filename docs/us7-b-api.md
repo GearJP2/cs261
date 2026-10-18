@@ -71,3 +71,16 @@ Party เต็มยังยกเลิกได้ บันทึก cancel
 ผิด body คืน INVALID_INPUT (400); service errors ใช้ code/status เดิม
 Tests ใน `test_cancellation_api.py` เรียก handler ผ่าน RequestFactory เท่านั้น
 ยังไม่ได้ตรวจ session/CSRF ผ่าน URL จริง ต้องใส่ guard US1 ก่อนเปิด route
+
+## Edit service (ยังไม่เปิด API)
+
+`edit_party(party_id=..., user=..., changes={...})` รับ trusted user และ parsed datetimes
+ล็อก Party ใน transaction ก่อนตรวจ Host; ไม่พบ NOT_FOUND (404), ไม่ใช่ Host FORBIDDEN (403)
+ตรวจสถานะเดิมก่อนรวมค่า: Cancelled ให้ PARTY_CANCELLED (409), เริ่มแล้วให้ PARTY_STARTED (409)
+จึงไม่สามารถเลื่อนเวลาเพื่อเปิด Party ที่เริ่มแล้วกลับมาแก้ได้
+
+รับเฉพาะ title/description/sport_id/venue_id/starts_at/ends_at/capacity
+รวมค่ากับ Party เดิมแล้วตรวจ validation และ schedule ชุดเดียวกับ Create
+capacity ต่ำกว่า active memberships ให้ CAPACITY_TOO_SMALL (409); Pending ไม่จองที่
+Party เต็มยังแก้ได้ การแก้ไม่ลบ membership/request; changes ว่างตรวจข้อมูลแต่ไม่เขียน updated_at
+Tests ใน test_editing.py; ยังรอ PATCH handler, guard และ route integration
