@@ -104,6 +104,33 @@ def create_party(
 
 
 @transaction.atomic
+def cancel_party(*, party_id, user):
+    """Cancel before start, preserving history and the first cancellation time.
+
+    The caller supplies the trusted user after authentication/eligibility checks.
+    Lock Party first, following the same order as join and other writers.
+    """
+    try:
+        party = Party.objects.select_for_update().get(pk=party_id)
+    except Party.DoesNotExist:
+        raise PartyError("NOT_FOUND", "ไม่พบกิจกรรมที่ต้องการ", 404) from None
+
+    if party.host_id != user.pk:
+        raise PartyError("FORBIDDEN", "เฉพาะผู้จัดกิจกรรมเท่านั้นที่ยกเลิกได้", 403)
+    if party.cancelled_at is not None:
+        return party
+
+    # A waiting transaction may acquire the lock after the activity starts.
+    now = timezone.now()
+    if now >= party.starts_at:
+        raise PartyError("PARTY_STARTED", "กิจกรรมนี้เริ่มแล้ว", 409)
+
+    party.cancelled_at = now
+    party.save(update_fields=["cancelled_at", "updated_at"])
+    return party
+
+
+@transaction.atomic
 def submit_join_request(*, party_id, user):
     """Create/reopen a Pending request without changing membership or capacity.
 
