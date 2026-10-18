@@ -10,15 +10,20 @@
 
 <div class="main-container">
   {% for sport in venue.sports %}
-  <a href="{% url 'venues:sport_detail' venue.id sport.id %}" class="sport-card">
-    <div class="card-top-content">
-      <div class="card-title">{{ sport.name }}</div>
-      {% if sport.court_count %}
-        <div class="card-info"> {{ sport.court_count }} Court</div>
+    <a href="{% url 'venues:sport_detail' venue.id sport.id %}" class="sport-card">
+      <div class="card-top-content">
+        <div class="card-title">{{ sport.name }}</div>
+        {% if sport.court_count %}
+          <div class="card-info">{{ sport.court_count }} Court</div>
+        {% endif %}
+      </div>
+      {% if venue.hours %}
+        <div class="card-hours">
+          {% for line in venue.hours %}<div>{{ line }}</div>{% endfor %}
+        </div>
       {% endif %}
-    </div>
-    {% if sport.book_first %}<div class="booking-badge">Book First</div>{% endif %}
-  </a>
+      {% if sport.book_first %}<div class="booking-badge">Book First</div>{% endif %}
+    </a>
   {% endfor %}
 </div>
 {% endblock %}

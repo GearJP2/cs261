@@ -200,3 +200,27 @@ body.gym-detail-page {
 
 .venue-page main { display: flex; flex-direction: column; flex: 1; padding: 0; }
 .venue-page .welcome { width: 100%; padding-block: 0; }
+
+.opening-hours {
+  background: #fff;
+  border-radius: 16px;
+  padding: 16px 24px;
+  margin: 16px 0;
+  max-width: 420px;
+  text-align: left;
+}
+.opening-hours h2 { font-size: 1.1rem; margin: 0 0 8px; }
+.opening-hours ul { list-style: none; padding: 0; margin: 8px 0; }
+.opening-hours li { padding: 4px 0; }
+
+.sport-card .card-hours {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 44px;
+  text-align: left;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: #333;
+  white-space: nowrap;
+}

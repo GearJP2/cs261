@@ -11,14 +11,27 @@
 <div class="main-container">
   <h1 class="sport-heading">{{ sport.name }}</h1>
 
+  <section class="opening-hours">
+    <h2>วันและเวลาเปิด–ปิด</h2>
+    {% if hours %}
+      <ul>
+        {% for h in hours %}
+          <li>{{ h.get_weekday_display }} {{ h.opens_at|time:"H:i" }}–{{ h.closes_at|time:"H:i" }}</li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>ยังไม่มีข้อมูลเวลาเปิด–ปิด</p>
+    {% endif %}
+  </section>
+
   {% for court in sport.courts %}
-  <div class="sub-card-item">
-    <div class="sub-img-placeholder"{% if sport.image %} style="background-image: url('{% static 'css/images/' %}{{ sport.image }}');"{% endif %}></div>
-    <div class="sub-info">
-      <div class="sub-name">{{ court }}</div>
-      <button type="button" class="select-btn">select</button>
+    <div class="sub-card-item">
+      <div class="sub-img-placeholder"{% if sport.image %} style="background-image: url('{% static 'css/images/' %}{{ sport.image }}');"{% endif %}></div>
+      <div class="sub-info">
+        <div class="sub-name">{{ court }}</div>
+        <button type="button" class="select-btn">select</button>
+      </div>
     </div>
-  </div>
   {% endfor %}
 </div>
 {% endblock %}
