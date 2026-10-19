@@ -310,7 +310,7 @@ class PartyDetailTests(TestCase):
 
     def test_unsupported_methods_do_not_change_party(self):
         force_university_login(self.client, self.host)
-        for method in ("post", "put", "delete", "options"):
+        for method in ("post", "put", "patch", "delete", "options"):
             with self.subTest(method=method):
                 response = getattr(self.client, method)(self.url)
                 self.assertEqual(response.status_code, 405)

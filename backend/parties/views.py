@@ -63,7 +63,35 @@ def party_detail(request, party_id):
     except Party.DoesNotExist:
         return json_error("NOT_FOUND", "ไม่พบกิจกรรมที่ต้องการ", 404)
 
-    return JsonResponse({"data": party_data(party, request.user)})
+    profile = getattr(party.host, "profile", None)
+    member_count = count_active_members(party)
+    return JsonResponse(
+        {
+            "data": {
+                "id": party.pk,
+                "title": party.title,
+                "description": party.description,
+                "host": {
+                    "id": party.host_id,
+                    # Legacy/local accounts may not have a profile. Never expose
+                    # their login identifier as a replacement display name.
+                    "display_name": profile.display_name if profile else "ผู้จัดกิจกรรม",
+                },
+                "sport_id": party.sport_id,
+                "venue_id": party.venue_id,
+                "starts_at": timezone.localtime(party.starts_at).isoformat(),
+                "ends_at": timezone.localtime(party.ends_at).isoformat(),
+                "capacity": party.capacity,
+                "member_count": member_count,
+                "remaining_slots": party.capacity - member_count,
+                "state": get_party_state(party, member_count=member_count),
+                "is_host": request.user.pk == party.host_id,
+                "is_member": party.memberships.filter(
+                    user=request.user, left_at__isnull=True
+                ).exists(),
+            }
+        }
+    )
 
 
 @never_cache

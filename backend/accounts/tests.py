@@ -81,6 +81,8 @@ class AccountSchemaTests(TestCase):
         UserSportInterest.objects.create(user=self.other_user, sport=self.sport)
         self.assertEqual(UserSportInterest.objects.count(), 2)
 
+
+class AccountDeletionAndValidationTests(TestCase):
     def create_user(self, username):
         return get_user_model().objects.create_user(username, password="test-only-password")
 
