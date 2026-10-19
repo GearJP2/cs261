@@ -7,6 +7,7 @@ from threading import Barrier, Event
 from time import monotonic
 from unittest.mock import patch
 
+from accounts.test_support import force_university_login
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.sessions.models import Session
@@ -51,7 +52,7 @@ class JoinRequestFixture:
         active_count = sum(row["left_at"] is None for row in memberships)
         self.assertEqual(count_active_members(self.party), active_count)
         client = Client()
-        client.force_login(self.applicant)
+        force_university_login(client, self.applicant)
         response = client.get(reverse("party-detail", args=[self.party.pk]))
         self.assertEqual(response.status_code, 200)
         data = response.json()["data"]
@@ -62,7 +63,7 @@ class JoinRequestFixture:
 class JoinRequestApiTests(JoinRequestFixture, TestCase):
     def setUp(self):
         super().setUp()
-        self.client.force_login(self.applicant)
+        force_university_login(self.client, self.applicant)
 
     def post_request(self, **kwargs):
         return self.client.post(
@@ -234,13 +235,13 @@ class JoinRequestApiTests(JoinRequestFixture, TestCase):
 
     def test_host_is_rejected_even_when_host_membership_is_missing(self):
         self.party.memberships.all().delete()
-        self.client.force_login(self.host)
+        force_university_login(self.client, self.host)
         self.assert_error(self.post_request(), 409, "ALREADY_MEMBER")
         self.assertFalse(JoinRequest.objects.exists())
 
     def test_host_with_active_membership_is_rejected_without_writing(self):
         memberships = self.membership_snapshot()
-        self.client.force_login(self.host)
+        force_university_login(self.client, self.host)
         self.assert_error(self.post_request(), 409, "ALREADY_MEMBER")
         self.assertFalse(JoinRequest.objects.exists())
         self.assert_membership_and_slots_unchanged(memberships, 2)
@@ -268,7 +269,7 @@ class JoinRequestApiTests(JoinRequestFixture, TestCase):
         self.client.logout()
         self.assert_error(self.post_request(), 401, "AUTH_REQUIRED")
         self.assert_error(self.client.get(self.mine_url), 401, "AUTH_REQUIRED")
-        self.client.force_login(self.applicant)
+        force_university_login(self.client, self.applicant)
         self.applicant.is_active = False
         self.applicant.save(update_fields=["is_active"])
         # ModelBackend rejects inactive users when resolving an existing session.
@@ -279,7 +280,7 @@ class JoinRequestApiTests(JoinRequestFixture, TestCase):
 
     def test_logout_endpoint_revokes_copied_session_for_both_endpoints(self):
         client = Client(enforce_csrf_checks=True)
-        client.force_login(self.applicant)
+        force_university_login(client, self.applicant)
         self.assertEqual(client.get(self.mine_url).status_code, 200)
         token = client.cookies["csrftoken"].value
         old_session = client.cookies[settings.SESSION_COOKIE_NAME].value
@@ -377,7 +378,7 @@ class JoinRequestApiTests(JoinRequestFixture, TestCase):
 
     def test_csrf_cookie_from_get_enables_post_and_bad_tokens_or_origins_are_rejected(self):
         client = Client(enforce_csrf_checks=True)
-        client.force_login(self.applicant)
+        force_university_login(client, self.applicant)
         self.assert_error(
             client.post(self.create_url, data="{}", content_type="application/json"),
             403,
@@ -425,7 +426,7 @@ class JoinRequestConcurrencyTests(JoinRequestFixture, TransactionTestCase):
         close_old_connections()
         try:
             client = Client()
-            client.force_login(get_user_model().objects.get(pk=user_id))
+            force_university_login(client, get_user_model().objects.get(pk=user_id))
             with connection.cursor() as cursor:
                 cursor.execute("SET lock_timeout = '5s'")
                 cursor.execute("SELECT pg_backend_pid()")
@@ -494,7 +495,7 @@ class JoinRequestConcurrencyTests(JoinRequestFixture, TransactionTestCase):
             self.assertIsNone(request.decided_at)
             self.assertIsNone(request.decided_by_id)
             client = Client()
-            client.force_login(request.user)
+            force_university_login(client, request.user)
             response = client.get(self.mine_url)
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.json()["data"]["id"], request.pk)
