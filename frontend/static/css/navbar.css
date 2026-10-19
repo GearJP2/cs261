@@ -27,8 +27,13 @@
   border-bottom: 3px solid transparent;
   transition: color .2s ease, border-color .2s ease;
 }
-.nv-links a:hover { color: #1f2430; border-bottom-color: #1f2430; }
-.nv-links:hover a.active:not(:hover) { border-bottom-color: transparent; color: #555; }
+.nv-links a:hover { color: #1f2430; border-bottom-color: #cfd3da; }
+.nv-links a.active,
+.nv-links a[aria-current="page"] {
+  color: #1f2430;
+  font-weight: 600;
+  border-bottom-color: #f5c451;
+}
 
 .nv-right { display: flex; align-items: center; gap: 16px; }
 .nv-create {
@@ -81,5 +86,19 @@
 .nv-menu a:hover { background: #f4f5f7; }
 
 @media (max-width: 900px) {
-  .nv-links { display: none; }
+  .nv-inner {
+    height: auto;
+    flex-wrap: wrap;
+    padding-top: 12px;
+    padding-bottom: 0;
+    gap: 8px 16px;
+  }
+  .nv-links {
+    order: 3;
+    width: 100%;
+    height: 44px;
+    gap: 24px;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
 }
