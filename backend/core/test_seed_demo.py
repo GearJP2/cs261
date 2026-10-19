@@ -3,6 +3,7 @@ from io import StringIO
 from unittest.mock import patch
 
 from accounts.models import UniversityIdentity, UserProfile, UserSportInterest
+from accounts.test_support import force_university_login
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.core.management.base import CommandError
@@ -69,7 +70,7 @@ class SeedDemoTests(TestCase):
     def test_rerun_preserves_primary_ids_resets_interactions_and_refreshes_dates(self):
         self.seed()
         ids = dict(Party.objects.values_list("title", "pk"))
-        user_ids = list(get_user_model().objects.values_list("pk", flat=True))
+        user_ids = list(get_user_model().objects.order_by("pk").values_list("pk", flat=True))
         counts = [
             model.objects.count()
             for model in (Party, PartyMembership, JoinRequest, Venue, VenueOpeningHour, VenueSport)
@@ -81,7 +82,10 @@ class SeedDemoTests(TestCase):
         )
         self.seed(self.now + timedelta(days=7))
         self.assertEqual(dict(Party.objects.values_list("title", "pk")), ids)
-        self.assertEqual(list(get_user_model().objects.values_list("pk", flat=True)), user_ids)
+        self.assertEqual(
+            list(get_user_model().objects.order_by("pk").values_list("pk", flat=True)),
+            user_ids,
+        )
         self.assertEqual(
             [
                 model.objects.count()
@@ -124,7 +128,10 @@ class SeedDemoTests(TestCase):
 
     def test_seeded_parties_can_be_read_through_existing_detail_api(self):
         self.seed()
-        self.client.force_login(get_user_model().objects.get(username="base03_x"))
+        force_university_login(
+            self.client,
+            get_user_model().objects.get(username="base03_x"),
+        )
         for name, state in (
             ("Open", "Open"),
             ("Last slot", "Open"),
