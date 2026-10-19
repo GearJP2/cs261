@@ -41,10 +41,10 @@ capacity = 1 จะมี state Full
 
 | HTTP | Error |
 | --- | --- |
-| 400 | INVALID_INPUT, INVALID_TIME_RANGE, VENUE_CLOSED; อาจมี error.fields |
+| 400 | INVALID_INPUT, INVALID_TIME_RANGE, VENUE_CLOSED, INVALID_OPENING_HOURS; อาจมี error.fields |
 | 401 | AUTH_REQUIRED |
 | 403 | FORBIDDEN, ACCOUNT_INACTIVE, CSRF_FAILED |
-| 404 | NOT_FOUND เมื่อไม่พบกีฬา/สนาม |
+| 404 | NOT_FOUND เมื่อไม่พบสนามหรือสนาม inactive; กีฬาไม่มีอยู่คืน 400 INVALID_INPUT ตาม US9 |
 | 405 | METHOD_NOT_ALLOWED พร้อม Allow: POST |
 
 Tests อยู่ใน `backend/parties/test_creation.py` และ `test_creation_api.py`
@@ -92,7 +92,6 @@ Tests ใน test_editing.py; เชื่อม PATCH handler, guard และ 
 starts_at/ends_at ที่ส่งต้องเป็น ISO 8601 พร้อม T และ timezone เช่นเดียวกับ Create
 handler ใช้ datetime parser ร่วมกับ Create แล้วส่ง changes ไป Edit service
 สำเร็จคืน 200 พร้อม Party data ชุดเดียวกับ GET; error ใช้ status/code/fields จาก service
-ผิด method คืน 405 พร้อม Allow: PATCH
 Tests ใน test_editing_api.py เรียก handler ผ่าน RequestFactory
 party_detail ส่ง PATCH ไป edit_party_api ที่ใช้ university guard; GET ยังใช้สิทธิ์เดิม
 method อื่นที่ path รายละเอียดคืน 405 พร้อม Allow: GET, PATCH
@@ -119,27 +118,52 @@ anonymous/local-only session, identity ข้าม user/ถูกลบ, inacti
 CSRF ขาด/ผิด/origin ไม่เชื่อถือ, non-host, readonly fields, schedule และ 404/405
 ไม่ได้เรียก TU API จริงหรือยืนยันการใช้งาน Frontend
 
+## การเชื่อม US9
+
+ใช้ `validate_party_schedule` และ `ScheduleValidationError` จาก `venues.services`
+ตาม [US9 API contract](us9-b2-api.md) ที่รวมผ่าน PR #46
+ไม่มี validator แยกของ US7; Create/Edit เรียก service โดยตรงใน transaction ก่อนบันทึก
+Edit รวมค่าที่ส่งกับข้อมูลเดิมก่อนตรวจ แม้เปลี่ยนเพียง venue_id ก็ต้องส่งกีฬาและเวลาเดิมครบ
+`ScheduleValidationError` ถูกแปลงเป็น `PartyError` โดยคง code/message/status/fields
+แล้ว handler ใช้ `json_error` คืน JSON envelope เดียวกัน
+
+| กรณีจาก US9 | HTTP / code |
+| --- | --- |
+| ID ผิดรูปแบบ กีฬาไม่มีอยู่ หรือสนามไม่รองรับกีฬา | 400 INVALID_INPUT |
+| ช่วงเวลาไม่ถูกต้องหรือข้ามวันตามเวลาไทย | 400 INVALID_TIME_RANGE |
+| ไม่พบสนามหรือสนาม inactive | 404 NOT_FOUND |
+| วันปิด นอกเวลา หรือคร่อมช่วงพัก | 400 VENUE_CLOSED |
+| ตารางเวลาเปิดของวันนั้นซ้อนกัน | 400 INVALID_OPENING_HOURS |
+
+ทั้งช่วงนัดต้องอยู่ในหนึ่งช่วงเปิด แม้สองช่วงเปิดติดกันก็ไม่นำมารวม
+ตัวตรวจไม่ใช่ระบบจองสนาม และไม่รวมวันหยุดพิเศษ/นัดข้ามเที่ยงคืน
+เวลาเริ่มในอนาคต สิทธิ์ Host ความจุ และสถานะ Party เป็นกฎของ US7
+ยังไม่มี lock ร่วมกับการแก้ configuration สนาม ตามข้อจำกัด US9
+
 ## สถานะตรวจความพร้อม Backend — 19 ตุลาคม 2026
 
-โค้ด integration อยู่ใน commit `8f1db2e` มี Create/Edit/Cancel APIs, university guard,
+รวม US1 และ US9 แล้วผ่าน merge commit `a701306` มี Create/Edit/Cancel APIs,
 Host authorization, atomic Host membership และ Party lock พร้อม service/HTTP/concurrency tests
 พร้อมส่ง review ฝั่ง Backend; ยังไม่ถือว่า US7 ทั้ง Story ผ่านการตรวจรับ Frontend
 
-ผลตรวจ:
+หลักฐานตรวจที่รันแล้ว:
 
-- Django system check ผ่าน และ `makemigrations --check --dry-run` ไม่พบ migration ค้าง
-- Ruff lint และ format ทั้ง `backend scripts` ผ่าน
-- ผล regression รอบ integration: 191 tests ผ่านเมื่อรัน
+- รอบ merge `a701306`: Ruff lint/format ผ่าน และ regression 200 tests ผ่าน เมื่อรัน
   `parties core venues accounts.tests accounts.test_profile_api`
-- Full backend run รวม 199 tests ยังมี 8 errors ใน `accounts.test_profile_acceptance`
-  เพราะอ้าง `reverse("user-public-profile")` แต่ US1 เพิ่ม namespace เป็น
-  `accounts:user-public-profile`; ปัญหานี้มีใน HEAD ที่รวม main แล้วก่อนงาน US7 integration
-  ไม่แก้โค้ด/tests ของ US8 ในงานนี้ และไม่อ้างว่า full suite ผ่าน
+- หลังเพิ่ม US7–US9 integration อีก 4 เคส: `parties.test_management_api` ผ่าน 12 tests
+  บน PostgreSQL และ Ruff lint ผ่าน; ยังไม่ได้รัน regression ทั้งชุดซ้ำหลังเพิ่มสี่เคสนี้
+- tests ใหม่ตรวจอ่าน sports → venues → opening-hours แล้วนำค่าตอบกลับมาสร้าง/แก้ Party,
+  เปลี่ยนเฉพาะสนามต้องตรวจเวลาเดิม, เปลี่ยนสนามพร้อมเวลาใหม่ผ่าน,
+  ตารางเปิดซ้อนกันต้องไม่บันทึก และกีฬาไม่มีอยู่/สนาม inactive คืน error ตาม US9
+- รอบ US1 integration ก่อนหน้า: Django check และ migration drift ผ่าน
+- ผล full backend run รอบก่อนหน้าติด 8 errors ใน `accounts.test_profile_acceptance`
+  เพราะอ้าง `reverse("user-public-profile")` แต่ accounts URLs ใช้ namespace
+  `accounts:user-public-profile`; ไม่แก้โค้ด/tests ของ US8 ในงานนี้ และไม่อ้างว่า full suite ผ่าน
 
 งานที่ยังต้องตรวจร่วมกับทีม:
 
 - Frontend เรียกสาม APIs ด้วย session/CSRF จริง รวม form errors และยืนยัน Cancel
-- เชื่อมรายการสนาม/เวลาเปิดของ US9 กับฟอร์ม และใช้ schedule service กลางชุดเดียวกัน
+- เชื่อมรายการสนาม/เวลาเปิดของ US9 กับฟอร์มจริง; Backend ใช้ service กลางแล้ว
 - การเรียก TU API จริงเป็นการตรวจรับ US1 แยกจาก university session fixtures ของ US7
 - ส่ง PR/review และจัดการ US8 test namespace ก่อนให้ CI ทั้งชุดผ่าน
 
