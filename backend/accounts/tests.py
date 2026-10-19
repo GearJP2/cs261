@@ -96,7 +96,7 @@ class AccountDeletionAndValidationTests(TestCase):
 
     def test_deleting_user_cascades_private_profile_identity_and_interest(self):
         user = self.create_user("cascade-user")
-        sport = self.sport
+        sport = Sport.objects.create(name="Badminton")
         UserProfile.objects.create(user=user, display_name="Cascade User")
         UniversityIdentity.objects.create(
             user=user,
