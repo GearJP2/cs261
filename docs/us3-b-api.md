@@ -57,6 +57,7 @@ GET นี้ออก CSRF cookie ผ่าน `ensure_csrf_cookie` สำห�
 | 400 | INVALID_INPUT | JSON ผิด, ไม่ใช่ object ว่าง, มีฟิลด์ที่ไม่รับ หรือ body ที่ไม่ใช่ application/json |
 | 401 | AUTH_REQUIRED | ไม่มี session ที่ใช้ได้ |
 | 403 | ACCOUNT_INACTIVE | shared guard ได้รับ authenticated inactive user |
+| 403 | FORBIDDEN | session ไม่มี identity มหาวิทยาลัยที่ผ่าน guard ของ US1-B |
 | 403 | CSRF_FAILED | POST ไม่ผ่าน CSRF/token/origin check |
 | 404 | NOT_FOUND | ไม่พบ Party ของ URL |
 | 405 | METHOD_NOT_ALLOWED | ใช้ method ผิด; response มี Allow |
@@ -73,7 +74,7 @@ GET นี้ออก CSRF cookie ผ่าน `ensure_csrf_cookie` สำห�
 
 ## ข้อจำกัดและการส่งต่อ
 
-- ยังใช้ local session guard ของ BASE-04 รอเพื่อนที่ทำ US1 เชื่อม eligibility/session policy จริง ไม่ถือว่า local tests ยืนยันสิทธิ์นักศึกษาหรือเชื่อมมหาวิทยาลัยแล้ว
+- BASE-04 เชื่อม guard ของ US1-B แล้ว: ต้องมี university identity ของผู้ใช้ใน server session ตาม [นโยบายร่วม](base-04-api.md#การเชื่อม-us1-b-และขอบเขตที่เหลือ) บัญชี local/Admin อย่างเดียวได้ 403 FORBIDDEN เทสต์ integration จำลองเฉพาะ TU response ไม่ใช่การทดสอบกับมหาวิทยาลัยจริง
 - ModelBackend ปัจจุบันมอง session ของบัญชีที่ถูกปิดเป็น anonymous จึงตอบ 401; ไม่เปลี่ยน backend หรือสร้าง Login แยกใน US3
 - ไม่รวม UI ของ US3-F, การอนุมัติ US10, การถอนตัว US4 หรือ cancellation endpoint ของ US7
 - ไม่มี migration/env/dependency ใหม่; ใช้ฐานข้อมูล PostgreSQL และ unique constraint เดิม
@@ -90,7 +91,7 @@ make smoke
 
 `test_join_requests.py` มี API tests และ `TransactionTestCase` สำหรับ concurrent requests ที่ใช้หลาย connection บน PostgreSQL ตรวจการรอ row lock ด้วย `pg_blocking_pids` และมี timeout เพื่อไม่ให้ค้าง ไม่มีการใช้ SQLite แทนผลทดสอบ concurrency ของ PostgreSQL
 
-ก่อนส่ง PR ให้บันทึกผลคำสั่งจริงและเชื่อม Issue US3-B (เอกสารทีมระบุ #13); ยังไม่ปิด integration ด้านสิทธิ์นักศึกษาหรือหน้า UI แทนงานของเพื่อน
+ก่อนส่ง PR ให้บันทึกผลคำสั่งจริงและเชื่อม Issue ที่เกี่ยวข้อง; ผลการเชื่อม guard ปัจจุบันดู BASE-04 ส่วนผลด้านล่างเป็นประวัติตอนส่ง US3-B ยังไม่ถือว่าปิดการตรวจหน้า UI หรือการเชื่อมมหาวิทยาลัยจริงแทนงานของเพื่อน
 
 ## ผลตรวจ local วันที่ 16 ตุลาคม 2026
 

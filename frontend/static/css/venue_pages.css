@@ -55,6 +55,7 @@ body.vu-page {
   cursor: pointer;
 }
 .vu-btn:hover { background: #f0b830; }
+.vu-btn-mobile { display: none; }
 
 /* หน้าอาคาร: การ์ดกีฬา */
 .vu-grid {
@@ -159,4 +160,21 @@ body.vu-page {
 @media (max-width: 800px) {
   .vu-sport-layout { grid-template-columns: 1fr; gap: 0; }
   .vu-wrap { padding: 16px; }
+  /* เวลาเปิด–ปิดอยู่เหนือหัวข้อกีฬา: เว้นระยะเท่ากับระหว่างหัวข้อกับการ์ดแรก */
+  .vu-sport-main .vu-title { margin-top: 24px; }
+}
+
+/* การ์ดคอร์ตแบบมือถือ: รูปบน เนื้อหาล่าง (ปุ่มสลับข้อความที่ breakpoint เดียวกัน) */
+@media (max-width: 699.98px) {
+  .vu-court { flex-direction: column; min-height: 0; }
+  .vu-court-img {
+    flex: none;
+    width: 100%;
+    height: 180px;
+    border-radius: 16px 16px 0 0;
+  }
+  .vu-court-body { padding: 16px 20px 20px; }
+  .vu-court-body .vu-btn { margin-top: 16px; }
+  .vu-btn-desktop { display: none; }
+  .vu-btn-mobile { display: inline; }
 }

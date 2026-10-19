@@ -1,14 +1,3 @@
-VENUE_SPORTS = {
-    "Badminton Interzone": ["Badminton"],
-    "Tennis Court": ["Tennis", "Pickleball"],
-    "Futsal Court": ["Futsal"],
-    "Gym 7": ["Squash", "Basketball", "Rock Climbing", "Ping Pong"],
-    "Football Court": ["Football"],
-    "Tu Xtreme": ["Extreme"],
-    "Aquatic Center": ["Swimming"],
-    "Gym 4": ["Badminton"],
-}
-
 VENUE_POS = {
     "Badminton Interzone": {"top": 8.2, "left": 1.9, "width": 9.6, "height": 3.7},
     "Tennis Court": {"top": 59.9, "left": 10.2, "width": 14.4, "height": 2.9},
@@ -20,34 +9,67 @@ VENUE_POS = {
     "Gym 4": {"top": 91.0, "left": 72.7, "width": 6.6, "height": 4.2},
 }
 
+# ชื่อสนามใน venue_catalog -> คีย์ตึกใน VENUE_POS
+CATALOG_BUILDING = {
+    "สนามแบดมินตัน ยิมเนเซียม 4": "Gym 4",
+    "สนามแบดมินตัน ยิมอินเตอร์โซน": "Badminton Interzone",
+    "สระว่ายน้ำ ศูนย์กีฬาทางน้ำ": "Aquatic Center",
+    "สนามเทนนิส": "Tennis Court",
+    "สนามพิกเคิลบอล": "Tennis Court",
+    "สนามสควอช ยิมเนเซียม 7": "Gym 7",
+    "สนามบาสเกตบอล": "Gym 7",
+    "สนามฟุตบอลหญ้าเทียม": "Football Court",
+    "สนามฟุตซอล": "Futsal Court",
+}
+
+BUILDING_LABEL = {
+    "Gym 4": "ยิมเนเซียม 4",
+    "Badminton Interzone": "ยิมอินเตอร์โซน",
+    "Aquatic Center": "ศูนย์กีฬาทางน้ำ",
+    "Tennis Court": "สนามเทนนิส",
+    "Gym 7": "ยิมเนเซียม 7",
+    "Football Court": "สนามฟุตบอล",
+    "Futsal Court": "สนามฟุตซอล",
+}
+
 SPORT_EMOJI = {
-    "Badminton": "🏸",
-    "Tennis": "🎾",
-    "Pickleball": "🥒",
-    "Futsal": "⚽",
-    "Squash": "🎾",
-    "Basketball": "🏀",
-    "Rock Climbing": "⛰️",
-    "Ping Pong": "🏓",
-    "Football": "⚽",
-    "Extreme": "🛹",
-    "Swimming": "💧",
+    "แบดมินตัน": "🏸",
+    "ว่ายน้ำ": "🏊",
+    "เทนนิส": "🎾",
+    "สควอช": "🎾",
+    "พิกเคิลบอล": "🏓",
+    "บาสเกตบอล": "🏀",
+    "ฟุตบอล": "⚽",
+    "ฟุตซอล": "⚽",
+    "ซอฟท์บอล": "🥎",
 }
 
 COURT_COUNT = {  # (ชื่อสนาม, ชื่อกีฬา)
-    ("Badminton Interzone", "Badminton"): 20,
-    ("Tennis Court", "Tennis"): 9,
-    ("Tennis Court", "Pickleball"): 2,
-    ("Gym 7", "Squash"): 2,
-    ("Gym 4", "Badminton"): 13,
+    ("สนามแบดมินตัน ยิมอินเตอร์โซน", "แบดมินตัน"): 20,
+    ("สนามเทนนิส", "เทนนิส"): 9,
+    ("สนามพิกเคิลบอล", "พิกเคิลบอล"): 2,
+    ("สนามสควอช ยิมเนเซียม 7", "สควอช"): 2,
+    ("สนามแบดมินตัน ยิมเนเซียม 4", "แบดมินตัน"): 13,
 }
 
 SPORT_IMAGES = {
-    ("Badminton Interzone", "Badminton"): "interzone.jpg",
-    ("Tennis Court", "Tennis"): "tennis.jpg",
-    ("Tennis Court", "Pickleball"): "pickleball.jpg",
-    ("Gym 7", "Squash"): "squash.jpg",
-    ("Aquatic Center", "Swimming"): "aquatic.jpg",
-    ("Gym 4", "Badminton"): "gym4.jpg",
-    ("Tu Xtreme", "Extreme"): "Xtreme.jpg",
+    ("สนามแบดมินตัน ยิมอินเตอร์โซน", "แบดมินตัน"): "interzone.jpg",
+    ("สนามเทนนิส", "เทนนิส"): "tennis.jpg",
+    ("สนามพิกเคิลบอล", "พิกเคิลบอล"): "pickleball.jpg",
+    ("สนามสควอช ยิมเนเซียม 7", "สควอช"): "squash.jpg",
+    ("สระว่ายน้ำ ศูนย์กีฬาทางน้ำ", "ว่ายน้ำ"): "aquatic.jpg",
+    ("สนามแบดมินตัน ยิมเนเซียม 4", "แบดมินตัน"): "gym4.jpg",
+}
+
+# จำนวนผู้เล่นสูงสุดต่อคอร์ต (คีย์ชื่อกีฬาใน venue_catalog); กีฬาที่ไม่มีในนี้ใช้ 4
+MAX_PLAYERS = {
+    "แบดมินตัน": 4,
+    "เทนนิส": 4,
+    "สควอช": 2,
+    "พิกเคิลบอล": 4,
+    "ว่ายน้ำ": 6,
+    "บาสเกตบอล": 10,
+    "ฟุตบอล": 14,
+    "ฟุตซอล": 10,
+    "ซอฟท์บอล": 18,
 }

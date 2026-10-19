@@ -1,11 +1,9 @@
 """Shared JSON responses and session access for Django views.
 
-This guard checks local accounts only. University eligibility belongs to US1;
-its shared policy must be integrated before claiming student-only access.
+Business APIs delegate session and university identity checks to US1.
 """
 
-from functools import wraps
-
+from accounts.decorators import require_university_user
 from django.http import JsonResponse
 from django.views.csrf import csrf_failure as django_csrf_failure
 from django.views.decorators.cache import never_cache
@@ -19,15 +17,8 @@ def json_error(code, message, status, fields=None):
 
 
 def require_authenticated_api(view):
-    @wraps(view)
-    def wrapped(request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            return json_error("AUTH_REQUIRED", "กรุณาเข้าสู่ระบบก่อนใช้งาน", 401)
-        if not request.user.is_active:
-            return json_error("ACCOUNT_INACTIVE", "บัญชีนี้ไม่สามารถใช้งานได้", 403)
-        return view(request, *args, **kwargs)
-
-    return wrapped
+    """Keep the BASE-04 entry point while applying US1's shared access policy."""
+    return require_university_user(view)
 
 
 @never_cache

@@ -5,6 +5,8 @@ from django.test import TestCase
 from django.urls import reverse
 from venues.models import Sport
 
+from accounts.test_support import force_university_login
+
 from .models import UniversityIdentity, UserProfile, UserSportInterest
 
 
@@ -40,8 +42,8 @@ class PublicProfileApiTests(TestCase):
         UserSportInterest.objects.create(user=cls.viewer, sport=cls.football)
 
     def setUp(self):
-        self.client.force_login(self.viewer)
-        self.url = reverse("user-public-profile", args=[self.target.pk])
+        force_university_login(self.client, self.viewer)
+        self.url = reverse("accounts:user-public-profile", args=[self.target.pk])
 
     def assert_error(self, response, status, code):
         self.assertEqual(response.status_code, status)
@@ -72,7 +74,7 @@ class PublicProfileApiTests(TestCase):
         self.assertIn("no-store", response["Cache-Control"])
 
     def test_own_profile_keeps_zero_credit_and_uses_user_id_not_profile_id(self):
-        response = self.client.get(reverse("user-public-profile", args=[self.viewer.pk]))
+        response = self.client.get(reverse("accounts:user-public-profile", args=[self.viewer.pk]))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             response.json(),
@@ -87,7 +89,9 @@ class PublicProfileApiTests(TestCase):
         )
 
     def test_empty_interests_and_unknown_credit_are_empty_list_and_null(self):
-        response = self.client.get(reverse("user-public-profile", args=[self.empty_user.pk]))
+        response = self.client.get(
+            reverse("accounts:user-public-profile", args=[self.empty_user.pk])
+        )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             response.json(),
@@ -105,7 +109,7 @@ class PublicProfileApiTests(TestCase):
         count = UserProfile.objects.count()
         for user_id in (self.no_profile.pk, self.no_profile.pk + 100):
             with self.subTest(user_id=user_id):
-                response = self.client.get(reverse("user-public-profile", args=[user_id]))
+                response = self.client.get(reverse("accounts:user-public-profile", args=[user_id]))
                 self.assertEqual(
                     response.json(),
                     {"error": {"code": "NOT_FOUND", "message": "ไม่พบโปรไฟล์ที่ต้องการ"}},
@@ -128,7 +132,7 @@ class PublicProfileApiTests(TestCase):
         self.client.logout()
         for user_id in (self.target.pk, self.no_profile.pk + 100):
             with self.subTest(user_id=user_id):
-                response = self.client.get(reverse("user-public-profile", args=[user_id]))
+                response = self.client.get(reverse("accounts:user-public-profile", args=[user_id]))
                 self.assert_error(response, 401, "AUTH_REQUIRED")
                 self.assertNotIn("Location", response)
 

@@ -1,32 +1,48 @@
-from datetime import time
+"""TU Rangsit reference data with explicit REAL/MOCK schedule labels."""
 
-from django.core.management.base import BaseCommand
+from django.conf import settings
+from django.core.management.base import BaseCommand, CommandError
+from django.db import transaction
 
 from venues.models import Sport, Venue, VenueOpeningHour, VenueSport
-from venues.ui_extras import VENUE_SPORTS
-
-# TODO: ตัวอย่างสำหรับทดสอบ UI เท่านั้น ต้องเปลี่ยนเป็นเวลาจริงของแต่ละสนาม
-SAMPLE_OPEN = time(9, 0)
-SAMPLE_CLOSE = time(21, 0)
+from venues.venue_catalog import MARKER, VENUES, location_label
 
 
 class Command(BaseCommand):
-    help = "ใส่สนาม กีฬา และเวลาเปิด–ปิดตัวอย่าง (รันซ้ำได้)"
+    help = "Seed TU Rangsit venues with REAL/MOCK hours labels (DEBUG=true only)."
 
     def handle(self, *args, **options):
-        for venue_name, sport_names in VENUE_SPORTS.items():
-            venue, _ = Venue.objects.get_or_create(
-                name=venue_name,
-                defaults={"location_text": "TU Rangsit (TODO: ใส่จุดนัดพบจริง)"},
-            )
-            for sport_name in sport_names:
-                sport, _ = Sport.objects.get_or_create(name=sport_name)
-                VenueSport.objects.get_or_create(venue=venue, sport=sport)
-            for weekday in range(7):
-                VenueOpeningHour.objects.get_or_create(
-                    venue=venue,
-                    weekday=weekday,
-                    opens_at=SAMPLE_OPEN,
-                    defaults={"closes_at": SAMPLE_CLOSE},
+        if not settings.DEBUG:
+            raise CommandError("seed_venues requires DEBUG=true and a development database.")
+        with transaction.atomic():
+            for record in VENUES:
+                name = record["name"]
+                matches = list(Venue.objects.filter(name=name))
+                if len(matches) > 1 or (
+                    matches and not matches[0].location_text.startswith(f"มธ. ศูนย์รังสิต | {MARKER} ")
+                ):
+                    raise CommandError(f"Reserved US9 venue name collision: {name}")
+                sport, _ = Sport.objects.get_or_create(name=record["sport"])
+                venue, _ = Venue.objects.update_or_create(
+                    name=name,
+                    defaults={"location_text": location_label(record), "is_active": True},
                 )
-        self.stdout.write("seed done")
+                # Reset only marked catalog configuration; never change Party data.
+                venue.venue_sports.all().delete()
+                VenueSport.objects.create(venue=venue, sport=sport)
+                venue.opening_hours.all().delete()
+                VenueOpeningHour.objects.bulk_create(
+                    [
+                        VenueOpeningHour(venue=venue, weekday=day, opens_at=start, closes_at=end)
+                        for day, start, end in record["intervals"]
+                    ]
+                )
+                self.stdout.write(
+                    f"{name}: venue_id={venue.pk}, venue=REAL, hours={record['hours_kind']}"
+                )
+        self.stdout.write(
+            self.style.SUCCESS(
+                "TU Rangsit ready: 10 venues, 9 sports; 3 published REAL schedules, "
+                "7 MOCK schedules. No live availability is verified."
+            )
+        )
