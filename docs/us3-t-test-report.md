@@ -63,7 +63,7 @@ make verify
 ## งานส่งต่อก่อนปิด parent
 
 1. Review เทสต์และผลรันนี้ แล้วอัปเดตผู้รับผิดชอบ/สถานะใน Issue หรือ Trello ตามที่ทีมตกลง
-2. BASE-04 integration: API คำขอยังใช้ `require_authenticated_api` และ session fixtures ผ่าน `force_login` การมี US1-B ใน main ยังไม่ได้ทำให้ API เหล่านี้บังคับ identity มหาวิทยาลัย ผลชุดนี้จึงไม่ยืนยันการปฏิเสธ local account ที่ไม่ได้ยืนยันมหาวิทยาลัย ต้องทดสอบเพิ่มหลังเชื่อม guard
+2. BASE-04 integration: API คำขอใช้ guard ร่วมกับ US1-B แล้ว และ fixtures ที่ต้องผ่าน API ใช้ university identity/session ของ test database; local account ที่ไม่มี identity ถูกปฏิเสธด้วย `403 FORBIDDEN` การเชื่อม TU จริงยังต้องตรวจแยกเมื่อได้รับช่องทาง API ที่อนุมัติ
 3. US3-F: ตรวจผ่านหน้าเว็บจริงว่ากดส่งแล้วแสดง Pending, ปิดปุ่มระหว่างส่ง, โหลด state ใหม่หลัง 409/network error และไม่แสดงปุ่มขอเมื่อ Party ปิดรับ
 4. เมื่อ US7 พร้อม ตรวจ race กับ cancellation endpoint จริงอีกครั้ง เทสต์ cancellation เดิมจำลอง transaction ตามกติกา Party lock
 
