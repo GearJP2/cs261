@@ -1,0 +1,195 @@
+body.vu-page {
+  margin: 0;
+  background: #fff7e0;
+  color: #1f2430;
+  font-family: "Prompt", "Noto Sans Thai", sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.vu-wrap {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 32px 48px;
+  box-sizing: border-box;
+}
+
+.vu-back {
+  display: inline-block;
+  background: #1f2430;
+  color: #fff;
+  padding: 8px 22px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.vu-title { font-size: 1.8rem; font-weight: 600; margin: 24px 0; }
+
+.vu-ico { width: 16px; height: 16px; flex: none; }
+
+.vu-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 0;
+  font-size: 0.9rem;
+  color: #4a4a4a;
+}
+
+.vu-card-title { font-size: 1.15rem; font-weight: 600; margin: 0 0 4px; }
+
+.vu-btn {
+  display: inline-block;
+  background: #f5c451;
+  color: #1f2430;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 20px;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+}
+.vu-btn:hover { background: #f0b830; }
+
+/* ปุ่มที่ยังใช้ไม่ได้ (เร็วๆ นี้) */
+.vu-btn--soon {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #e6e1d6;
+  color: #8a8577;
+  cursor: not-allowed;
+}
+.vu-btn--soon:hover { background: #e6e1d6; }
+.vu-soon-badge {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+/* หน้าอาคาร: การ์ดกีฬา */
+.vu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 28px;
+}
+
+.vu-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.vu-card-img {
+  height: 170px;
+  background-color: #d9d9d9;
+  background-size: cover;
+  background-position: center;
+}
+
+.vu-card-body { padding: 16px 20px 18px; display: flex; flex-direction: column; flex: 1; }
+
+.vu-card-foot {
+  margin-top: auto;
+  padding-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+.vu-card-foot--badge {
+  justify-content: space-between;
+  border-top: 1px solid #e5e5e5;
+  margin-top: 14px;
+}
+
+.vu-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+}
+.vu-badge::before {
+  content: "";
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #f2a7ae;
+}
+
+/* หน้ากีฬา: ซ้าย = เวลา, ขวา = รายการคอร์ต */
+.vu-sport-layout {
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  gap: 40px;
+  align-items: start;
+}
+
+.vu-hours {
+  margin-top: 24px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px 24px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+.vu-hours h2 { font-size: 1rem; font-weight: 600; margin: 0 0 12px; }
+.vu-hours ul { list-style: none; margin: 0; padding: 0; font-size: 0.95rem; }
+.vu-hours li { padding: 3px 0; }
+.vu-hours p { margin: 0; color: #666; }
+
+.vu-sport-main .vu-title { margin-top: 0; }
+
+.vu-list { display: flex; flex-direction: column; gap: 24px; max-width: 680px; }
+
+.vu-court {
+  display: flex;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+  min-height: 160px;
+}
+
+.vu-court-img {
+  flex: 0 0 42%;
+  background-color: #d9d9d9;
+  background-size: cover;
+  background-position: center;
+}
+
+.vu-court-body {
+  flex: 1;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+}
+.vu-court-body .vu-btn { align-self: flex-end; margin-top: auto; }
+
+@media (max-width: 800px) {
+  .vu-sport-layout { grid-template-columns: 1fr; gap: 0; }
+  .vu-wrap { padding: 16px; }
+  /* เวลาเปิด–ปิดอยู่เหนือหัวข้อกีฬา: เว้นระยะเท่ากับระหว่างหัวข้อกับการ์ดแรก */
+  .vu-sport-main .vu-title { margin-top: 24px; }
+}
+
+/* การ์ดคอร์ตแบบมือถือ: รูปบน เนื้อหาล่าง */
+@media (max-width: 699.98px) {
+  .vu-court { flex-direction: column; min-height: 0; }
+  .vu-court-img {
+    flex: none;
+    width: 100%;
+    height: 180px;
+    border-radius: 16px 16px 0 0;
+  }
+  .vu-court-body { padding: 16px 20px 20px; }
+  .vu-court-body .vu-btn { margin-top: 16px; }
+}

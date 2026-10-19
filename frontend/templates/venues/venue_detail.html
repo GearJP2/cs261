@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ venue.name }}{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="{% static 'css/venues.css' %}">
+<link rel="stylesheet" href="{% static 'css/venue_pages.css' %}">
+{% endblock %}
+{% block body_class %}venue-page vu-page{% endblock %}
+
+{% block content %}
+<div class="vu-wrap">
+  <a href="{% url 'venues:venue_map' %}" class="vu-back">Back</a>
+  <h1 class="vu-title">{{ venue.name }}</h1>
+
+  <div class="vu-grid">
+    {% for sport in venue.sports %}
+      <article class="vu-card">
+        <div class="vu-card-img"{% if sport.image %} style="background-image: url('{% static 'css/images/' %}{{ sport.image }}');"{% endif %}></div>
+        <div class="vu-card-body">
+          <h2 class="vu-card-title">{{ sport.name }}</h2>
+          <p class="vu-meta">{% include "venues/_icon_pin.html" %}<span>{{ venue.name }}</span></p>
+          {% if venue.hours %}
+            <p class="vu-meta">{% include "venues/_icon_calendar.html" %}<span>{{ venue.hours|join:", " }}</span></p>
+          {% endif %}
+          <div class="vu-card-foot{% if sport.book_first %} vu-card-foot--badge{% endif %}">
+            {% if sport.book_first %}<span class="vu-badge">Book First</span>{% endif %}
+            <a class="vu-btn" href="{% url 'venues:sport_detail' venue.id sport.id %}">ดูรายละเอียด</a>
+          </div>
+        </div>
+      </article>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

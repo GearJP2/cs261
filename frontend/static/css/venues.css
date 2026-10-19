@@ -1,0 +1,343 @@
+/*Body*/
+body.gym-detail-page {
+    margin: 0;
+    padding: 20px;
+    background-color: #DFEED1;
+    font-family: sans-serif;
+    box-sizing: border-box;
+    min-height: 100vh;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.back-button {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 0.9rem;
+    background: #fff;
+    text-decoration: none;
+    color: #000;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 5px 0 #BBBABA;
+}
+.back-button:active { top: 25px; box-shadow: none; }
+
+/* container  */
+.main-container {
+    margin-top: 60px;
+    width: 100%;
+    min-height: 300px;
+    background-color: #FDC980;
+    border-radius: 10px;
+    padding: 30px;
+    box-sizing: border-box;
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    box-shadow: 0 15px 0 #d89b52;
+    position: relative;
+    flex: 1;
+    margin-bottom: 15px;
+}
+
+/*  card  */
+.sport-card {
+    width: 180px;
+    height: 220px;
+    border-radius: 12px;
+    padding: 16px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background: #fff;
+    box-shadow: 0 10px 0 #BBBABA;
+    position: relative;
+    text-decoration: none;
+    color: inherit;
+}
+.sport-card:active { top: 9px; box-shadow: none; }
+
+.card-top-content { display: flex; flex-direction: column; }
+.card-title { font-size: 1rem; font-weight: 500; margin: 0; }
+.card-info { font-size: 0.85rem; color: #333; line-height: 1.4; margin: 0; }
+
+.sport-card .booking-badge {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+}
+
+.booking-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    color: #333;
+    font-weight: 500;
+}
+.booking-badge::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    background-color: #f5a50f;
+    border-radius: 50%;
+}
+
+/* Sport-page */
+.sport-page .main-container {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+}
+
+.sport-heading {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin: 0;
+    color: #333;
+}
+
+.sub-card-item {
+    display: flex;
+    background: #eef1ef;
+    border-radius: 12px;
+    overflow: hidden;
+    min-height: 200px;
+    margin-top: 20px;
+    position: relative;
+}
+
+.sub-img-placeholder {
+    flex: 0 0 44%;
+    background-color: #b5b5b5;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.sub-info {
+    flex: 1;
+    padding: 20px 26px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 0.95rem;
+    color: #333;
+}
+.sub-name { font-weight: 500; }
+
+.select-btn {
+    background: #22c55e;
+    color: #fff;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    align-self: flex-end;
+    margin: auto 0 0 auto;
+    position: relative;
+    top: 0;
+    box-shadow: 0 4px 0 #15803d;
+}
+.select-btn:active { top: 4px; box-shadow: none; }
+
+.sub-detail { color: #555; }
+
+/*  map  */
+.map-container {
+    position: relative;
+    width: 100%;
+    margin: 1.5rem auto;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+.map-container img { width: 100%; height: auto; display: block; }
+
+.yellow-building {
+    position: absolute;
+    background: #FDC980;
+    border-radius: 6px;
+    box-shadow: 0 10px 0 #DB835F;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.05s ease, box-shadow 0.05s ease;
+}
+.yellow-building:hover { background: rgb(255, 197, 24); }
+.yellow-building:active { transform: translateY(10px); box-shadow: 0 0 0 #DB835F; }
+
+.yellow-building .building-info {
+    display: none;
+    position: absolute;
+    bottom: 110%;
+    left: 0;
+    background: #fff;
+    color: #233f35;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    border-radius: 6px;
+    min-width: 150px;
+    pointer-events: none;
+    z-index: 10;
+}
+.yellow-building:hover .building-info { display: block; }
+
+.map-header {
+    height: 70px;
+}
+
+.map-container .back-button {
+    z-index: 20;
+}
+
+.venue-page main { display: flex; flex-direction: column; flex: 1; padding: 0; }
+.venue-page .welcome { width: 100%; padding-block: 0; }
+
+.opening-hours {
+  background: #fff;
+  border-radius: 16px;
+  padding: 16px 24px;
+  margin: 16px 0;
+  max-width: 420px;
+  text-align: left;
+}
+.opening-hours h2 { font-size: 1.1rem; margin: 0 0 8px; }
+.opening-hours ul { list-style: none; padding: 0; margin: 8px 0; }
+.opening-hours li { padding: 4px 0; }
+
+.sport-card .card-hours {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 44px;
+  text-align: left;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: #333;
+  white-space: nowrap;
+}
+
+
+
+.yellow-building .sport-menu {
+  display: none;
+  position: absolute;
+  inset: 0;
+  padding: 6%;
+  box-sizing: border-box;
+  z-index: 30;
+}
+.yellow-building .sport-menu ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: 1fr;
+  gap: 8%;
+}
+.yellow-building .sport-menu li { min-width: 0; min-height: 0; }
+.yellow-building .sport-menu a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.18);
+  color: #233f35;
+  font-size: clamp(0.45rem, 0.8vw, 0.75rem);
+  line-height: 1.1;
+  text-align: center;
+  text-decoration: none;
+}
+.yellow-building .sport-menu a span { font-size: 1.6em; line-height: 1; }
+.yellow-building .sport-menu a:hover { background: #fff7e0; }
+.yellow-building .sport-menu a:active { box-shadow: none; transform: translateY(3px); }
+
+.yellow-building:hover .sport-menu,
+.yellow-building:focus-within .sport-menu { display: block; }
+
+.yellow-building.has-menu { cursor: default; }
+.yellow-building.has-menu:active { transform: none; box-shadow: 0 10px 0 #db835f; }
+.yellow-building.has-menu:hover .building-info { display: none; }
+
+.yellow-building .building-name {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 2px;
+  font-size: clamp(0.45rem, 0.75vw, 0.8rem);
+  font-weight: 600;
+  line-height: 1.15;
+  color: #233f35;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+.yellow-building:hover .building-name,
+.yellow-building:focus-within .building-name { display: none; }
+
+/* สนามที่ยังไม่มีตำแหน่งบนแผนที่ */
+.other-venues {
+  padding: 1rem 16px 2.5rem;
+  box-sizing: border-box;
+  text-align: left;
+}
+.other-venues h2 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #233f35;
+  margin: 0 0 12px;
+}
+.other-venues ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+.other-venue-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  top: 0;
+  padding: 14px 18px;
+  border-radius: 10px;
+  background: #FDC980;
+  box-shadow: 0 6px 0 #DB835F;
+  color: #233f35;
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+.other-venue-card:hover { background: rgb(255, 197, 24); }
+.other-venue-card:active { top: 6px; box-shadow: none; }
+.other-venue-sports,
+.other-venue-hours { font-size: 0.85rem; color: #4a4a4a; }
+
+@media (min-width: 700px) {
+  .other-venues { padding-inline: 24px; }
+}
+@media (max-width: 699.98px) {
+  .other-venues ul { grid-template-columns: 1fr; }
+}

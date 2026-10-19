@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}โปรไฟล์ผู้ใช้ | UniSport Buddy{% endblock %}
+{% block extra_css %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/profile.css' %}">
+{% endblock %}
+{% block body_class %}profile-page-body{% endblock %}
+
+{% block content %}
+<div class="profile-page">
+    <!-- ปุ่ม ย้อนกลับ -->
+    <a class="profile-back" href="{% url 'home' %}" aria-label="กลับสู่หน้าหลัก">
+        <span aria-hidden="true">&#8592;</span> ย้อนกลับ
+    </a>
+
+    <div class="profile-content">
+        {% if profile is None %}
+            <section class="profile-not-found" aria-labelledby="profile-title">
+                <div class="profile-avatar-placeholder" aria-hidden="true">
+                    <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="60" cy="60" r="60" fill="#E2E8F0"/>
+                        <circle cx="60" cy="45" r="20" fill="#CBD5E1"/>
+                        <path d="M24 95C24 76 40 64 60 64C80 64 96 76 96 95" fill="#CBD5E1"/>
+                    </svg>
+                </div>
+                <h1 id="profile-title">ไม่พบผู้ใช้</h1>
+            </section>
+        {% else %}
+           <header class="profile-heading">
+                {% if profile.avatar_url %}
+                    <!-- กรณีที่ 1 และ 2: มีรูปภาพ (ระบบจะดึงรูปมาแสดง) -->
+                    <img class="profile-avatar" src="{{ profile.avatar_url }}" alt="{{ profile.name }}">
+                {% else %}
+                    <!-- กรณีที่ 4 และ 5: ไม่มีรูปภาพ (ระบบจะแสดงไอคอนคนสีเทาแทน) -->
+                    <div class="profile-avatar-placeholder" aria-hidden="true" style="margin-bottom: 1.25rem;">
+                        <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="60" cy="60" r="60" fill="#E2E8F0"/>
+                            <circle cx="60" cy="45" r="20" fill="#CBD5E1"/>
+                            <path d="M24 95C24 76 40 64 60 64C80 64 96 76 96 95" fill="#CBD5E1"/>
+                        </svg>
+                    </div>
+                {% endif %}
+                <h1>{{ profile.name }}</h1>
+            </header>
+
+            <section class="profile-card" aria-labelledby="credit-title">
+                <div class="card-left">
+                    <span class="card-icon" aria-hidden="true">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#ffc83d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </span>
+                    <h2 id="credit-title">คะแนนความประพฤติ:</h2>
+                </div>
+                <div class="card-right">
+                    {% if profile.credit is None %}
+                        <span class="profile-empty">ไม่มีคะแนน</span>
+                    {% else %}
+                        <span class="profile-credit-value">{{ profile.credit }} คะแนน</span>
+                    {% endif %}
+                </div>
+            </section>
+
+            <section class="profile-card sports-card" aria-labelledby="sports-title">
+                <div class="card-left">
+                    <h2 id="sports-title">กีฬาที่สนใจ</h2>
+                </div>
+                {% if profile.interests %}
+                    <ul class="profile-tags">
+                        {% for interest in profile.interests %}
+                            <li>{% if interest.name %}{{ interest.name }}{% else %}{{ interest }}{% endif %}</li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="profile-empty">ยังไม่ได้ระบุกีฬาที่สนใจ</p>
+                {% endif %}
+            </section>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

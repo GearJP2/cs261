@@ -8,6 +8,7 @@ from django.core.exceptions import ImproperlyConfigured
 BASE_DIR = Path(__file__).resolve().parent.parent
 PROJECT_DIR = BASE_DIR.parent
 
+TU_APPLICATION_KEY = os.environ.get("TU_APPLICATION_KEY", "")
 SECRET_KEY = os.environ.get("SECRET_KEY", "")
 DEBUG = os.environ.get("DEBUG", "false").lower() in {"1", "true", "yes"}
 if not SECRET_KEY:
@@ -97,7 +98,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # University login, student eligibility and its session policy belong to US1.
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
+UNIVERSITY_SESSION_AGE = 24 * 60 * 60
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
+CSRF_FAILURE_VIEW = "core.api.csrf_failure"
