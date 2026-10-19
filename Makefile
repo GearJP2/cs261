@@ -1,6 +1,6 @@
 COMPOSE ?= docker compose
 
-.PHONY: help init build up down logs ps check test lint format verify smoke migrations migrate superuser shell
+.PHONY: help init build up down logs ps check test lint format verify smoke migrations migrate seed superuser shell
 
 help:
 	@echo "init        Copy .env.example once (keeps an existing .env)"
@@ -9,6 +9,7 @@ help:
 	@echo "smoke       Probe a running app (run make up first)"
 	@echo "migrations  Generate migrations; coordinate with the database owner first"
 	@echo "migrate     Apply committed migrations"
+	@echo "seed        Create/reset local BASE-03 demo data (DEBUG=true only)"
 	@echo "format      Format Python code"
 	@echo "logs/ps     View service logs/status"
 	@echo "down        Stop services; keep database data"
@@ -58,6 +59,9 @@ migrations:
 
 migrate:
 	$(COMPOSE) run --rm backend python backend/manage.py migrate
+
+seed:
+	$(COMPOSE) run --rm -T backend python backend/manage.py seed_demo
 
 superuser:
 	$(COMPOSE) run --rm backend python backend/manage.py createsuperuser

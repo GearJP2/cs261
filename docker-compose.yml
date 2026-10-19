@@ -19,6 +19,7 @@ services:
       start_period: 5s
 
   backend:
+    image: cs261-unisport-backend:dev
     build:
       context: .
       dockerfile: backend/Dockerfile
