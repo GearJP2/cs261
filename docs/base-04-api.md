@@ -117,5 +117,5 @@ docker compose run --rm -T backend python backend/manage.py test core.test_auth_
 - `make up` และ `make smoke` ผ่าน: HTTP, PostgreSQL readiness, Django template และ static CSS
 - แก้ชื่อ route ใน profile acceptance tests 3 จุดเป็น `accounts:user-public-profile` เช่นเดียวกับการแก้ใน PR #47 เพื่อให้ตรวจรวมผ่านบน main ปัจจุบัน
 - ไม่มี migration, environment variable หรือ package dependency ใหม่ หากจะทดสอบ TU จริงใช้ configuration ของ US1 ที่มีอยู่แล้ว ไม่ใส่ credentials ใน fixtures
-- ณ ตอนเริ่มงาน PR #47 (`072913b`) ยังไม่อยู่ใน main: หลังรวม PR นั้นให้ปรับจุด `force_login` ใหม่ของ US3-T ที่ต้องผ่าน guard เป็น `force_university_login` ยกเว้นเทสต์ที่ตั้งใจตรวจ local-only session และรัน verify ใหม่ ไม่ถือว่าผล 170 tests นี้รวมเทสต์ใหม่จาก PR #47 แล้ว
+- หลังรวมการเปลี่ยนแปลง US3-T ของ PR #47 เข้ากับ branch นี้ ทุก fixture ที่ต้องเข้าถึง Business API ใช้ `force_university_login`; เคสที่ตั้งใจตรวจ local-only session ยังคงใช้ `force_login` เพื่อยืนยันว่าได้ `403 FORBIDDEN` ผลตรวจรวมของ commit หลังรวมให้ดูจาก CI ของ PR
 - ผลนี้พร้อมส่ง review สำหรับ Backend integration แต่ไม่ใช่ CI, การตรวจ TU จริง, UI acceptance หรือการปิด BASE-04-02/US3-T ทั้ง parent
