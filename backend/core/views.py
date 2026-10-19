@@ -14,7 +14,7 @@ def home(request):
 
 
 @require_GET
- def profile_view(request, id):
+def profile_view(request, id):
      api_url = request.build_absolute_uri(f"/api/v1/users/{id}/profile")
 
      status_code = 200
