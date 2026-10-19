@@ -1,3 +1,6 @@
+import json
+import urllib.request
+from urllib.error import URLError
 from django.db import DatabaseError, connection
 from django.http import JsonResponse
 from django.shortcuts import render
@@ -11,12 +14,25 @@ def home(request):
 
 @require_GET
 def profile_view(request, id):
-    profile = {
-        "name": "สมชาย ใจดี",
-        "credit": 85,
-        "interests": ["แบดมินตัน", "บาสเกตบอล"],
-        "avatar_url": None,
-    }
+    api_url = request.build_absolute_uri(f'/api/v1/users/{id}/profile')
+
+    try:
+        req = urllib.request.Request(api_url)
+
+        cookie_header = "; ".join([f"{k}={v}" for k, v in request.COOKIES.items()])
+        if cookie_header:
+            req.add_header("Cookie", cookie_header)
+
+        with urllib.request.urlopen(req, timeout=5) as response:
+            if response.status == 200:
+                data = response.read().decode('utf-8')
+                profile = json.loads(data)
+            else:
+                profile = None
+
+    except URLError:
+        profile = None
+
     return render(request, "profile.html", {"profile": profile})
 
 
