@@ -5,6 +5,8 @@ from django.test import TestCase
 from django.urls import reverse
 from venues.models import Sport
 
+from accounts.test_support import force_university_login
+
 from .models import UniversityIdentity, UserProfile, UserSportInterest
 
 
@@ -40,8 +42,8 @@ class PublicProfileApiTests(TestCase):
         UserSportInterest.objects.create(user=cls.viewer, sport=cls.football)
 
     def setUp(self):
-        self.client.force_login(self.viewer)
-        self.url = reverse("user-public-profile", args=[self.target.pk])
+        force_university_login(self.client, self.viewer)
+        self.url = reverse("accounts:user-public-profile", args=[self.target.pk])
 
     def assert_error(self, response, status, code):
         self.assertEqual(response.status_code, status)
