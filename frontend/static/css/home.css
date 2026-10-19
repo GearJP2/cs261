@@ -115,6 +115,15 @@ a { color: inherit; text-decoration: none; }
 }
 .hp-btn:hover { background: #f0b930; }
 
+/* ปุ่มที่ยังไม่เปิดใช้ (ดู .is-disabled ใน navbar.css) */
+.hp-cta.is-disabled,
+.hp-cta.is-disabled:hover { background: #c9ccd3; }
+.hp-join.is-disabled,
+.hp-join.is-disabled:hover,
+.hp-btn.is-disabled,
+.hp-btn.is-disabled:hover { background: #ece6d3; color: #8a8f99; }
+.hp-all.is-disabled { color: #9aa0aa; }
+
 .hp-footer { text-align: center; color: #777; font-size: .85rem; padding: 28px 0; border-top: 1px solid #eee; }
 
 @media (max-width: 900px) {
