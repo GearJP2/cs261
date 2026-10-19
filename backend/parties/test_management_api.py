@@ -343,3 +343,114 @@ class PartyManagementApiTests(TestCase):
         self.party.refresh_from_db()
         self.assertEqual(self.party.title, "Existing")
         self.assertEqual(self.party.sport_id, self.payload["sport_id"])
+
+    def test_create_rejects_capacity_over_database_limit_without_writing(self):
+        self.login()
+        original_parties = list(Party.objects.values().order_by("pk"))
+        original_memberships = list(PartyMembership.objects.values().order_by("pk"))
+        for capacity in (2_147_483_648, 10**100):
+            with self.subTest(capacity=capacity):
+                response = self.send("post", self.create_url, self.payload | {"capacity": capacity})
+                self.assertEqual(response.status_code, 400)
+                error = response.json()["error"]
+                self.assertEqual(error["code"], "INVALID_INPUT")
+                self.assertIn("capacity", error["fields"])
+                self.assertEqual(list(Party.objects.values().order_by("pk")), original_parties)
+                self.assertEqual(
+                    list(PartyMembership.objects.values().order_by("pk")),
+                    original_memberships,
+                )
+
+    def test_edit_rejects_capacity_over_database_limit_without_partial_update(self):
+        self.login()
+        original_party = Party.objects.values().get(pk=self.party.pk)
+        original_memberships = list(self.party.memberships.values().order_by("pk"))
+        for capacity in (2_147_483_648, 10**100):
+            with self.subTest(capacity=capacity):
+                response = self.send(
+                    "patch",
+                    self.edit_url,
+                    {
+                        "title": "Must not save",
+                        "capacity": capacity,
+                    },
+                )
+                self.assertEqual(response.status_code, 400)
+                error = response.json()["error"]
+                self.assertEqual(error["code"], "INVALID_INPUT")
+                self.assertIn("capacity", error["fields"])
+                self.assertEqual(Party.objects.values().get(pk=self.party.pk), original_party)
+                self.assertEqual(
+                    list(self.party.memberships.values().order_by("pk")),
+                    original_memberships,
+                )
+
+    def test_create_and_edit_accept_capacity_at_database_limit(self):
+        self.login()
+        capacity = 2_147_483_647
+        response = self.send("post", self.create_url, self.payload | {"capacity": capacity})
+        self.assertEqual(response.status_code, 201)
+        created = Party.objects.get(pk=response.json()["data"]["id"])
+        self.assertEqual(created.capacity, capacity)
+        response = self.send("patch", self.edit_url, {"capacity": capacity})
+        self.assertEqual(response.status_code, 200)
+        self.party.refresh_from_db()
+        self.assertEqual(self.party.capacity, capacity)
+
+    def test_create_rejects_nul_in_text_without_writing(self):
+        self.login()
+        original_parties = list(Party.objects.values().order_by("pk"))
+        original_memberships = list(PartyMembership.objects.values().order_by("pk"))
+        for field in ("title", "description"):
+            with self.subTest(field=field):
+                response = self.send("post", self.create_url, self.payload | {field: "Bad\x00text"})
+                self.assertEqual(response.status_code, 400)
+                error = response.json()["error"]
+                self.assertEqual(error["code"], "INVALID_INPUT")
+                self.assertIn(field, error["fields"])
+                self.assertEqual(list(Party.objects.values().order_by("pk")), original_parties)
+                self.assertEqual(
+                    list(PartyMembership.objects.values().order_by("pk")),
+                    original_memberships,
+                )
+
+    def test_edit_rejects_nul_in_text_without_partial_update(self):
+        self.login()
+        original_party = Party.objects.values().get(pk=self.party.pk)
+        original_memberships = list(self.party.memberships.values().order_by("pk"))
+        for field in ("title", "description"):
+            with self.subTest(field=field):
+                changes = {"title": "Must not save", "capacity": 4, field: "Bad\x00text"}
+                response = self.send("patch", self.edit_url, changes)
+                self.assertEqual(response.status_code, 400)
+                error = response.json()["error"]
+                self.assertEqual(error["code"], "INVALID_INPUT")
+                self.assertIn(field, error["fields"])
+                self.assertEqual(Party.objects.values().get(pk=self.party.pk), original_party)
+                self.assertEqual(
+                    list(self.party.memberships.values().order_by("pk")),
+                    original_memberships,
+                )
+
+    def test_regular_unicode_text_and_empty_description_are_preserved(self):
+        self.login()
+        title = "นัดตีแบด 🏸"
+        description = "ชั้น ๒\nพบกันที่สนาม\tเวลาเดิม"
+        response = self.send(
+            "post",
+            self.create_url,
+            self.payload
+            | {
+                "title": title,
+                "description": description,
+            },
+        )
+        self.assertEqual(response.status_code, 201)
+        created = Party.objects.get(pk=response.json()["data"]["id"])
+        self.assertEqual((created.title, created.description), (title, description))
+        response = self.send(
+            "patch", reverse("party-detail", args=[created.pk]), {"description": ""}
+        )
+        self.assertEqual(response.status_code, 200)
+        created.refresh_from_db()
+        self.assertEqual(created.description, "")

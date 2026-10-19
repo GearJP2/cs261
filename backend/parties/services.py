@@ -8,6 +8,9 @@ from venues.services import ScheduleError, validate_party_schedule
 
 from .models import JoinRequest, Party, PartyMembership
 
+# PostgreSQL IntegerField upper bound; no lower business limit is defined yet.
+MAX_PARTY_CAPACITY = 2_147_483_647
+
 
 class PartyError(Exception):
     def __init__(self, code, message, status=400, fields=None):
@@ -56,8 +59,11 @@ def validate_party_data(
         fields["title"] = "กรุณาระบุชื่อกิจกรรมไม่เกิน 150 ตัวอักษร"
     if not isinstance(description, str) or len(description) > 2000:
         fields["description"] = "รายละเอียดต้องเป็นข้อความไม่เกิน 2,000 ตัวอักษร"
-    if type(capacity) is not int or capacity < 1:
-        fields["capacity"] = "จำนวนผู้เข้าร่วมต้องเป็นจำนวนเต็มตั้งแต่ 1 ขึ้นไป"
+    for field, value in (("title", title), ("description", description)):
+        if isinstance(value, str) and "\x00" in value:
+            fields[field] = "ข้อความต้องไม่มีอักขระ NUL"
+    if type(capacity) is not int or not 1 <= capacity <= MAX_PARTY_CAPACITY:
+        fields["capacity"] = f"จำนวนผู้เข้าร่วมต้องเป็นจำนวนเต็มตั้งแต่ 1 ถึง {MAX_PARTY_CAPACITY:,}"
     for field, value in (("starts_at", starts_at), ("ends_at", ends_at)):
         if not isinstance(value, datetime) or timezone.is_naive(value):
             fields[field] = "กรุณาระบุวันเวลาที่มี timezone"
