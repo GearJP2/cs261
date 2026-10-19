@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ sport.name }} - {{ venue.name }}{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="{% static 'css/venues.css' %}">
+<link rel="stylesheet" href="{% static 'css/venue_pages.css' %}">
+{% endblock %}
+{% block body_class %}venue-page vu-page{% endblock %}
+
+{% block content %}
+<div class="vu-wrap">
+  <div class="vu-sport-layout">
+    <aside>
+      <a href="{{ back_url }}" class="vu-back">Back</a>
+      <section class="vu-hours">
+        <h2>วันและเวลาเปิด–ปิด</h2>
+        {% if hours %}
+          <ul>
+            {% for h in hours %}
+              <li>{{ h.get_weekday_display }} {{ h.opens_at|time:"H:i" }}–{{ h.closes_at|time:"H:i" }}</li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p>ยังไม่มีข้อมูลเวลาเปิด–ปิด</p>
+        {% endif %}
+      </section>
+    </aside>
+
+    <div class="vu-sport-main">
+      <h1 class="vu-title">{{ sport.name }}</h1>
+      <div class="vu-list">
+        {% for court in sport.courts %}
+          <article class="vu-court">
+            <div class="vu-court-img"{% if sport.image %} style="background-image: url('{% static 'css/images/' %}{{ sport.image }}');"{% endif %}></div>
+            <div class="vu-court-body">
+              <h2 class="vu-card-title">{{ court }}</h2>
+              <p class="vu-meta">{% include "venues/_icon_pin.html" %}<span>{{ venue.name }}</span></p>
+              {% if venue.hours %}
+                <p class="vu-meta">{% include "venues/_icon_calendar.html" %}<span>{{ venue.hours|join:", " }}</span></p>
+              {% endif %}
+              {# TODO: replace "_" with the real joined count once party data is available #}
+              <p class="vu-meta">{% include "venues/_icon_people.html" %}<span>_/{{ sport.max_players }}คน</span></p>
+              {# TODO: enable when booking / Create Party exists #}
+              <button type="button" class="vu-btn vu-btn--soon" disabled aria-disabled="true" title="เร็วๆ นี้">เลือก<span class="vu-soon-badge">เร็วๆ นี้</span></button>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

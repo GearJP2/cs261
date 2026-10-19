@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Map{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/venues.css' %}">{% endblock %}
+{% block body_class %}venue-page{% endblock %}
+
+{% block content %}
+<header class="map-header"></header>
+
+<section class="welcome">
+<div class="map-container">
+<a href="{% url 'home' %}" class="back-button">←</a>
+<img src="{% static 'css/images/SporttMap.png' %}" alt="TU Campus Map">
+{% for venue in venues %}
+{% if venue.sports|length > 1 %}
+<div class="yellow-building has-menu" tabindex="0" style="top:{{ venue.pos.top|stringformat:'g' }}%; left:{{ venue.pos.left|stringformat:'g' }}%; width:{{ venue.pos.width|stringformat:'g' }}%; height:{{ venue.pos.height|stringformat:'g' }}%;"><span class="building-name">{{ venue.name }}</span><span class="building-info"><strong>{{ venue.name }}</strong>{% for s in venue.sports %}<br>{{ s.emoji }} {{ s.name }}{% if s.court_count %}: {{ s.court_count }} court{% endif %}{% if s.book_first %}<span class="booking-badge">Book First</span>{% endif %}{% endfor %}</span>
+<div class="sport-menu"><ul>{% for s in venue.sports %}<li><a href="{% url 'venues:sport_detail' s.venue_id s.id %}"><span>{{ s.emoji }}</span>{{ s.name }}</a></li>{% endfor %}</ul></div></div>
+{% else %}
+<a href="{% url 'venues:venue_detail' venue.id %}" class="yellow-building" style="top:{{ venue.pos.top|stringformat:'g' }}%; left:{{ venue.pos.left|stringformat:'g' }}%; width:{{ venue.pos.width|stringformat:'g' }}%; height:{{ venue.pos.height|stringformat:'g' }}%;"><span class="building-name">{{ venue.name }}</span><span class="building-info"><strong>{{ venue.name }}</strong>{% for s in venue.sports %}<br>{{ s.emoji }} {{ s.name }}{% if s.court_count %}: {{ s.court_count }} court{% endif %}{% if s.book_first %}<span class="booking-badge">Book First</span>{% endif %}{% endfor %}</span></a>
+{% endif %}
+{% endfor %}
+</div>
+{% if other_venues %}
+<section class="other-venues">
+<h2>สนามอื่น ๆ</h2>
+<ul>
+{% for v in other_venues %}
+<li><a href="{% url 'venues:venue_detail' v.id %}" class="other-venue-card"><strong>{{ v.name }}</strong><span class="other-venue-sports">{% for s in v.sports %}{{ s.emoji }} {{ s.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>{% for line in v.hours %}<span class="other-venue-hours">{{ line }}</span>{% endfor %}</a></li>
+{% endfor %}
+</ul>
+</section>
+{% endif %}
+</section>
+{% endblock %}
