@@ -1,17 +1,17 @@
 # US7 Backend API
 
 US7 รวมสร้าง แก้ไข และยกเลิก Party ตามขอบเขตที่ตกลงล่าสุด แทนข้อเสนอเดิมที่แยกงานสร้างออกไป
-ตอนนี้มี Create service และ HTTP handler แต่ยังไม่เปิด route; รอเชื่อม guard จาก US1
-มี Edit/Cancel services และ handlers แล้ว แต่ยังไม่เปิด routes; รอเชื่อม guard จาก US1
+เปิด Create/Edit/Cancel routes แล้ว โดยใช้ `accounts.decorators.require_university_user` จาก US1
+POST/PATCH ต้องผ่าน Django CSRF middleware และ university session guard
 
 ## สร้าง Party
 
 `POST /api/v1/parties` (ไม่มี slash ท้าย) รับ `Content-Type: application/json`
 ต้องใช้ university session และ CSRF cookie/header `X-CSRFToken`
 
-จุดเชื่อมที่รอ US1: import และใช้ `require_university_user` ก่อนลงทะเบียน route
-จากนั้นทดสอบ university session และ CSRF ผ่าน URL จริง ไม่คัดลอกโค้ด US1 มาใน branch นี้
-contract ด้านล่างเป็นพฤติกรรมที่เตรียมไว้สำหรับ integration
+Create/Edit/Cancel ใช้ guard จาก US1 ที่ merge แล้ว ไม่มีการคัดลอกหรือสร้าง guard ใหม่
+GET รายละเอียดและ US3 คงใช้ guard เดิมของงานนั้น
+รับ CSRF token จาก `GET /api/v1/auth/csrf` และใช้ cookie/session เดียวกัน
 
 ```json
 {
@@ -49,9 +49,9 @@ capacity = 1 จะมี state Full
 
 Tests อยู่ใน `backend/parties/test_creation.py` และ `test_creation_api.py`
 ทดสอบการบันทึก/rollback, validation, schedule, request allowlist และ response เทียบ GET
-ผ่าน RequestFactory บน PostgreSQL; ยังไม่ได้ทดสอบ Create route, university session หรือ CSRF integration
+ผ่าน RequestFactory บน PostgreSQL; HTTP/session/CSRF integration อยู่ใน test_management_api.py
 
-## Cancel service (ยังไม่เปิด API)
+## Cancel service
 
 `cancel_party(party_id=..., user=...)` รับ trusted user จาก caller หลังผ่าน auth
 เปิด transaction และล็อก Party ก่อนตรวจ Host; ไม่พบคืน PartyError NOT_FOUND (404)
@@ -60,19 +60,19 @@ Tests อยู่ใน `backend/parties/test_creation.py` และ `test_crea
 ครั้งแรกอ่านเวลาหลังได้ lock และต้องก่อน starts_at มิฉะนั้น PARTY_STARTED (409)
 Party เต็มยังยกเลิกได้ บันทึก cancelled_at และ updated_at โดยเก็บ membership/request ไว้
 ทดสอบด้วย `test_cancellation.py` รวม PostgreSQL lock wait และยกเลิกพร้อมกัน
-ยังรอ university guard และ route integration
+เชื่อม university guard และ route แล้ว
 
-## Cancel handler (ยังไม่เปิด route)
+## Cancel API
 
-เตรียม `POST /api/v1/parties/{id}/cancel` รับ application/json body `{}` เท่านั้น
+`POST /api/v1/parties/{id}/cancel` รับ application/json body `{}` เท่านั้น
 ไม่รับ client-selected actor/status หรือข้อมูลอื่น สำเร็จคืน 200
 `{"data":{"id":1,"state":"Cancelled","cancelled_at":"..."}}`
 เรียกซ้ำคืน timestamp เดิม ผิด method คืน 405 พร้อม Allow: POST
 ผิด body คืน INVALID_INPUT (400); service errors ใช้ code/status เดิม
 Tests ใน `test_cancellation_api.py` เรียก handler ผ่าน RequestFactory เท่านั้น
-ยังไม่ได้ตรวจ session/CSRF ผ่าน URL จริง ต้องใส่ guard US1 ก่อนเปิด route
+ทดสอบ session/CSRF ผ่าน URL จริงใน test_management_api.py
 
-## Edit service (ยังไม่เปิด API)
+## Edit service
 
 `edit_party(party_id=..., user=..., changes={...})` รับ trusted user และ parsed datetimes
 ล็อก Party ใน transaction ก่อนตรวจ Host; ไม่พบ NOT_FOUND (404), ไม่ใช่ Host FORBIDDEN (403)
@@ -83,18 +83,19 @@ Tests ใน `test_cancellation_api.py` เรียก handler ผ่าน Req
 รวมค่ากับ Party เดิมแล้วตรวจ validation และ schedule ชุดเดียวกับ Create
 capacity ต่ำกว่า active memberships ให้ CAPACITY_TOO_SMALL (409); Pending ไม่จองที่
 Party เต็มยังแก้ได้ การแก้ไม่ลบ membership/request; changes ว่างตรวจข้อมูลแต่ไม่เขียน updated_at
-Tests ใน test_editing.py; มี PATCH handler แล้ว; ยังรอ guard และ route integration
+Tests ใน test_editing.py; เชื่อม PATCH handler, guard และ route แล้ว
 
-## Edit handler (ยังไม่เปิด route)
+## Edit API
 
-เตรียม `PATCH /api/v1/parties/{id}` รับ application/json object เฉพาะฟิลด์ที่อนุญาต
+`PATCH /api/v1/parties/{id}` รับ application/json object เฉพาะฟิลด์ที่อนุญาต
 ไม่บังคับส่งทุกฟิลด์ และไม่เติม default ให้ฟิลด์ที่ไม่ได้ส่ง; `{}` เป็น no-op เมื่อข้อมูลเดิมยังผ่าน validation
 starts_at/ends_at ที่ส่งต้องเป็น ISO 8601 พร้อม T และ timezone เช่นเดียวกับ Create
 handler ใช้ datetime parser ร่วมกับ Create แล้วส่ง changes ไป Edit service
 สำเร็จคืน 200 พร้อม Party data ชุดเดียวกับ GET; error ใช้ status/code/fields จาก service
 ผิด method คืน 405 พร้อม Allow: PATCH
 Tests ใน test_editing_api.py เรียก handler ผ่าน RequestFactory
-ยังไม่เปิด PATCH ใน party_detail หรือเพิ่ม route จนกว่าจะเชื่อม guard US1
+party_detail ส่ง PATCH ไป edit_party_api ที่ใช้ university guard; GET ยังใช้สิทธิ์เดิม
+method อื่นที่ path รายละเอียดคืน 405 พร้อม Allow: GET, PATCH
 
 ## Edit concurrency tests
 
@@ -108,3 +109,38 @@ partial edits พร้อมกันรวมข้อมูลล่าสุ
 อ่านนาฬิกาหลังได้ lock และตรวจจำนวนสมาชิกที่ commit ระหว่างรอใหม่
 กรณีสมาชิกเพิ่มจำลอง writer ที่ล็อก Party ก่อนตามสัญญา ไม่ใช่ implementation ของ US10
 เป็น service concurrency tests ไม่รวม HTTP/auth integration
+
+## HTTP integration หลัง US1 merge
+
+`test_management_api.py` ใช้ Django Client(enforce_csrf_checks=True) ผ่าน URL จริง
+รับ token จาก endpoint US1 ใช้ university session fixtures ที่ผูกกับ identity จริงในฐานทดสอบ
+ครอบคลุม Create → GET → Edit → Cancel → ยกเลิกซ้ำ และ US3 ขอหลัง Cancel,
+anonymous/local-only session, identity ข้าม user/ถูกลบ, inactive/logout,
+CSRF ขาด/ผิด/origin ไม่เชื่อถือ, non-host, readonly fields, schedule และ 404/405
+ไม่ได้เรียก TU API จริงหรือยืนยันการใช้งาน Frontend
+
+## สถานะตรวจความพร้อม Backend — 19 ตุลาคม 2026
+
+โค้ด integration อยู่ใน commit `8f1db2e` มี Create/Edit/Cancel APIs, university guard,
+Host authorization, atomic Host membership และ Party lock พร้อม service/HTTP/concurrency tests
+พร้อมส่ง review ฝั่ง Backend; ยังไม่ถือว่า US7 ทั้ง Story ผ่านการตรวจรับ Frontend
+
+ผลตรวจ:
+
+- Django system check ผ่าน และ `makemigrations --check --dry-run` ไม่พบ migration ค้าง
+- Ruff lint และ format ทั้ง `backend scripts` ผ่าน
+- ผล regression รอบ integration: 191 tests ผ่านเมื่อรัน
+  `parties core venues accounts.tests accounts.test_profile_api`
+- Full backend run รวม 199 tests ยังมี 8 errors ใน `accounts.test_profile_acceptance`
+  เพราะอ้าง `reverse("user-public-profile")` แต่ US1 เพิ่ม namespace เป็น
+  `accounts:user-public-profile`; ปัญหานี้มีใน HEAD ที่รวม main แล้วก่อนงาน US7 integration
+  ไม่แก้โค้ด/tests ของ US8 ในงานนี้ และไม่อ้างว่า full suite ผ่าน
+
+งานที่ยังต้องตรวจร่วมกับทีม:
+
+- Frontend เรียกสาม APIs ด้วย session/CSRF จริง รวม form errors และยืนยัน Cancel
+- เชื่อมรายการสนาม/เวลาเปิดของ US9 กับฟอร์ม และใช้ schedule service กลางชุดเดียวกัน
+- การเรียก TU API จริงเป็นการตรวจรับ US1 แยกจาก university session fixtures ของ US7
+- ส่ง PR/review และจัดการ US8 test namespace ก่อนให้ CI ทั้งชุดผ่าน
+
+สถานะใน Sprint checklist ยังไม่ติ๊ก Done เพราะรวม review และการเชื่อม Frontend ด้วย
