@@ -40,7 +40,7 @@ class PublicProfileAcceptanceTests(TestCase):
 
     def setUp(self):
         self.client.force_login(self.viewer)
-        self.url = reverse("user-public-profile", args=[self.target.pk])
+        self.url = reverse("accounts:user-public-profile", args=[self.target.pk])
 
     def assert_private_response(self, response):
         self.assertEqual(response["Content-Type"], "application/json")
@@ -61,7 +61,7 @@ class PublicProfileAcceptanceTests(TestCase):
                 (self.target, 0, [{"id": self.badminton.pk, "name": "แบดมินตัน"}]),
             ):
                 with self.subTest(viewer=client.session.session_key, target=target.pk):
-                    response = client.get(reverse("user-public-profile", args=[target.pk]))
+                    response = client.get(reverse("accounts:user-public-profile", args=[target.pk]))
                     self.assertEqual(response.status_code, 200)
                     self.assertEqual(
                         response.json(),
@@ -151,7 +151,7 @@ class PublicProfileAcceptanceTests(TestCase):
         self.assertEqual(self.target_profile.credit_score, 0)
 
     def test_error_responses_are_private_and_do_not_echo_untrusted_query(self):
-        missing_url = reverse("user-public-profile", args=[999999999])
+        missing_url = reverse("accounts:user-public-profile", args=[999999999])
         sentinel = "untrusted-query-sentinel@example.invalid"
         for authenticated in (True, False):
             if not authenticated:

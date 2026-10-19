@@ -19,6 +19,8 @@ make verify
 
 เพิ่ม API ส่ง Pending และอ่านคำขอของผู้ใช้จาก session โดยใช้ Party lock และ unique constraint เดิม รองรับการขอใหม่หลัง Rejected/ถอนตัวตาม schema contract ล่าสุด ดู [US3-B API](../docs/us3-b-api.md) สำหรับ request/response, CSRF, error codes และข้อจำกัดที่ยังรอ US1
 
+ผลทดสอบและตารางเทียบเงื่อนไข US3-T-01/02 อยู่ใน [US3-T test report](../docs/us3-t-test-report.md) รวมข้อจำกัดก่อนปิด integration
+
 ## US8-B — Public profile API
 
 อ่านโปรไฟล์ตาม User ID ผ่าน `GET /api/v1/users/{user_id}/profile` ใช้ session guard ร่วม และคืนเฉพาะชื่อแสดงผล กีฬาที่สนใจ และเครดิตที่เก็บอยู่ ดู [US8-B API](../docs/us8-b-api.md) สำหรับ contract, พฤติกรรมเมื่อไม่มีโปรไฟล์ และข้อจำกัดที่ยังรอ US1/US8-F
