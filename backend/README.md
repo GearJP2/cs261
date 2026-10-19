@@ -22,3 +22,8 @@ make verify
 ## US8-B — Public profile API
 
 อ่านโปรไฟล์ตาม User ID ผ่าน `GET /api/v1/users/{user_id}/profile` ใช้ session guard ร่วม และคืนเฉพาะชื่อแสดงผล กีฬาที่สนใจ และเครดิตที่เก็บอยู่ ดู [US8-B API](../docs/us8-b-api.md) สำหรับ contract, พฤติกรรมเมื่อไม่มีโปรไฟล์ และข้อจำกัดที่ยังรอ US1/US8-F
+
+## US9-B2 — Venue API และ schedule validation
+
+อ่านกีฬา สนาม active ตามกีฬา และเวลาเปิดผ่าน API-03–05; ฝั่งสร้าง/แก้ Party import
+`venues.services.validate_party_schedule` ใช้ตรงได้ ดู [contract และ errors](../docs/us9-b2-api.md)
