@@ -7,7 +7,9 @@ from threading import Barrier, Event
 from time import monotonic
 from unittest.mock import patch
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.sessions.models import Session
 from django.db import close_old_connections, connection, connections, transaction
 from django.test import Client, TestCase, TransactionTestCase, skipUnlessDBFeature
 from django.urls import reverse
@@ -38,6 +40,23 @@ class JoinRequestFixture:
         PartyMembership.objects.create(party=self.party, user=self.host)
         self.create_url = reverse("party-join-request-create", args=[self.party.pk])
         self.mine_url = reverse("party-join-request-me", args=[self.party.pk])
+
+    def membership_snapshot(self):
+        return list(self.party.memberships.order_by("pk").values())
+
+    def assert_membership_and_slots_unchanged(self, memberships, capacity):
+        self.assertEqual(self.membership_snapshot(), memberships)
+        self.party.refresh_from_db()
+        self.assertEqual(self.party.capacity, capacity)
+        active_count = sum(row["left_at"] is None for row in memberships)
+        self.assertEqual(count_active_members(self.party), active_count)
+        client = Client()
+        client.force_login(self.applicant)
+        response = client.get(reverse("party-detail", args=[self.party.pk]))
+        self.assertEqual(response.status_code, 200)
+        data = response.json()["data"]
+        self.assertEqual(data["member_count"], active_count)
+        self.assertEqual(data["remaining_slots"], capacity - active_count)
 
 
 class JoinRequestApiTests(JoinRequestFixture, TestCase):
@@ -187,6 +206,8 @@ class JoinRequestApiTests(JoinRequestFixture, TestCase):
         self.assertEqual(JoinRequest.objects.values().get(), before)
 
     def test_closed_party_states_reject_new_requests(self):
+        memberships = self.membership_snapshot()
+        starts_at, ends_at = self.party.starts_at, self.party.ends_at
         for fields, code in (
             ({"cancelled_at": self.now}, "PARTY_CANCELLED"),
             ({"starts_at": self.now}, "PARTY_STARTED"),
@@ -196,12 +217,14 @@ class JoinRequestApiTests(JoinRequestFixture, TestCase):
             with self.subTest(code=code):
                 Party.objects.filter(pk=self.party.pk).update(
                     cancelled_at=None,
-                    starts_at=self.party.starts_at,
-                    ends_at=self.party.ends_at,
+                    starts_at=starts_at,
+                    ends_at=ends_at,
                     capacity=2,
                 )
                 Party.objects.filter(pk=self.party.pk).update(**fields)
                 self.assert_error(self.post_request(), 409, code)
+                self.assertFalse(JoinRequest.objects.exists())
+                self.assert_membership_and_slots_unchanged(memberships, fields.get("capacity", 2))
         self.assertFalse(JoinRequest.objects.exists())
 
     def test_exact_start_boundary_rejects_request(self):
@@ -215,12 +238,21 @@ class JoinRequestApiTests(JoinRequestFixture, TestCase):
         self.assert_error(self.post_request(), 409, "ALREADY_MEMBER")
         self.assertFalse(JoinRequest.objects.exists())
 
+    def test_host_with_active_membership_is_rejected_without_writing(self):
+        memberships = self.membership_snapshot()
+        self.client.force_login(self.host)
+        self.assert_error(self.post_request(), 409, "ALREADY_MEMBER")
+        self.assertFalse(JoinRequest.objects.exists())
+        self.assert_membership_and_slots_unchanged(memberships, 2)
+
     def test_active_member_is_rejected(self):
         self.party.capacity = 3
         self.party.save(update_fields=["capacity"])
         PartyMembership.objects.create(party=self.party, user=self.applicant)
+        memberships = self.membership_snapshot()
         self.assert_error(self.post_request(), 409, "ALREADY_MEMBER")
         self.assertFalse(JoinRequest.objects.exists())
+        self.assert_membership_and_slots_unchanged(memberships, 3)
 
     def test_unknown_party_returns_json_404_for_both_endpoints(self):
         self.create_url = reverse("party-join-request-create", args=[self.party.pk + 1])
@@ -232,6 +264,7 @@ class JoinRequestApiTests(JoinRequestFixture, TestCase):
         )
 
     def test_anonymous_and_revoked_sessions_cannot_read_or_create(self):
+        memberships = self.membership_snapshot()
         self.client.logout()
         self.assert_error(self.post_request(), 401, "AUTH_REQUIRED")
         self.assert_error(self.client.get(self.mine_url), 401, "AUTH_REQUIRED")
@@ -242,6 +275,64 @@ class JoinRequestApiTests(JoinRequestFixture, TestCase):
         self.assert_error(self.post_request(), 401, "AUTH_REQUIRED")
         self.assert_error(self.client.get(self.mine_url), 401, "AUTH_REQUIRED")
         self.assertFalse(JoinRequest.objects.exists())
+        self.assertEqual(self.membership_snapshot(), memberships)
+
+    def test_logout_endpoint_revokes_copied_session_for_both_endpoints(self):
+        client = Client(enforce_csrf_checks=True)
+        client.force_login(self.applicant)
+        self.assertEqual(client.get(self.mine_url).status_code, 200)
+        token = client.cookies["csrftoken"].value
+        old_session = client.cookies[settings.SESSION_COOKIE_NAME].value
+        response = client.post(
+            reverse("accounts:logout"),
+            data="{}",
+            content_type="application/json",
+            HTTP_X_CSRFTOKEN=token,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Session.objects.filter(session_key=old_session).exists())
+        # Another tab/client retaining the old cookie must also lose access.
+        stale_client = Client(enforce_csrf_checks=True)
+        stale_client.cookies[settings.SESSION_COOKIE_NAME] = old_session
+        stale_client.cookies["csrftoken"] = token
+        memberships = self.membership_snapshot()
+        for browser in (client, stale_client):
+            with self.subTest(stale=browser is stale_client):
+                self.assert_error(browser.get(self.mine_url), 401, "AUTH_REQUIRED")
+                self.assert_error(
+                    browser.post(
+                        self.create_url,
+                        data="{}",
+                        content_type="application/json",
+                        HTTP_X_CSRFTOKEN=token,
+                    ),
+                    401,
+                    "AUTH_REQUIRED",
+                )
+        self.assertFalse(JoinRequest.objects.exists())
+        self.assertEqual(self.membership_snapshot(), memberships)
+
+    def test_expired_session_cannot_read_or_create(self):
+        session_key = self.client.cookies[settings.SESSION_COOKIE_NAME].value
+        Session.objects.filter(session_key=session_key).update(
+            expire_date=timezone.now() - timedelta(seconds=1)
+        )
+        memberships = self.membership_snapshot()
+        self.assert_error(self.post_request(), 401, "AUTH_REQUIRED")
+        self.assert_error(self.client.get(self.mine_url), 401, "AUTH_REQUIRED")
+        self.assertFalse(JoinRequest.objects.exists())
+        self.assertEqual(self.membership_snapshot(), memberships)
+
+    def test_body_cannot_create_request_for_an_existing_other_user(self):
+        memberships = self.membership_snapshot()
+        response = self.client.post(
+            self.create_url,
+            data={"user_id": self.other.pk},
+            content_type="application/json",
+        )
+        self.assert_error(response, 400, "INVALID_INPUT")
+        self.assertFalse(JoinRequest.objects.exists())
+        self.assert_membership_and_slots_unchanged(memberships, 2)
 
     def test_invalid_body_and_client_selected_fields_are_rejected(self):
         for body, content_type in (
@@ -368,6 +459,7 @@ class JoinRequestConcurrencyTests(JoinRequestFixture, TransactionTestCase):
         self.fail("Worker did not wait for the Party lock")
 
     def test_same_user_concurrent_posts_create_exactly_one_pending(self):
+        memberships = self.membership_snapshot()
         results = self.simultaneous_posts([self.applicant.pk, self.applicant.pk])
         self.assertEqual(sorted(status for status, _ in results), [201, 409])
         self.assertEqual(
@@ -376,15 +468,37 @@ class JoinRequestConcurrencyTests(JoinRequestFixture, TransactionTestCase):
         )
         self.assertEqual(JoinRequest.objects.count(), 1)
         self.assertEqual(JoinRequest.objects.get().status, "Pending")
-        self.assertEqual(count_active_members(self.party), 1)
+        request = JoinRequest.objects.get()
+        self.assertEqual((request.party_id, request.user_id), (self.party.pk, self.applicant.pk))
+        self.assertIsNone(request.decided_at)
+        self.assertIsNone(request.decided_by_id)
+        self.assertEqual(
+            next(body for status, body in results if status == 201)["data"]["id"], request.pk
+        )
+        self.assert_membership_and_slots_unchanged(memberships, 2)
 
     def test_different_users_can_both_request_the_last_slot(self):
+        memberships = self.membership_snapshot()
         results = self.simultaneous_posts([self.applicant.pk, self.other.pk])
         self.assertEqual([status for status, _ in results], [201, 201])
         self.assertEqual(JoinRequest.objects.filter(status="Pending").count(), 2)
-        self.assertEqual(count_active_members(self.party), 1)
-        self.party.refresh_from_db()
-        self.assertEqual(self.party.capacity, 2)
+        self.assertEqual(
+            set(JoinRequest.objects.values_list("party_id", "user_id")),
+            {(self.party.pk, self.applicant.pk), (self.party.pk, self.other.pk)},
+        )
+        self.assertEqual(
+            {body["data"]["id"] for _, body in results},
+            set(JoinRequest.objects.values_list("pk", flat=True)),
+        )
+        for request in JoinRequest.objects.all():
+            self.assertIsNone(request.decided_at)
+            self.assertIsNone(request.decided_by_id)
+            client = Client()
+            client.force_login(request.user)
+            response = client.get(self.mine_url)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json()["data"]["id"], request.pk)
+        self.assert_membership_and_slots_unchanged(memberships, 2)
 
     def test_concurrent_reapplications_reuse_one_row_only_once(self):
         request = JoinRequest.objects.create(
