@@ -42,7 +42,8 @@
               {% endif %}
               {# TODO: replace "_" with the real joined count once party data is available #}
               <p class="vu-meta">{% include "venues/_icon_people.html" %}<span>_/{{ sport.max_players }}คน</span></p>
-              <button type="button" class="vu-btn"><span class="vu-btn-desktop">เลือก</span><span class="vu-btn-mobile">ดูรายละเอียด</span></button>
+              {# TODO: enable when booking / Create Party exists #}
+              <button type="button" class="vu-btn vu-btn--soon" disabled aria-disabled="true" title="เร็วๆ นี้">เลือก<span class="vu-soon-badge">เร็วๆ นี้</span></button>
             </div>
           </article>
         {% endfor %}

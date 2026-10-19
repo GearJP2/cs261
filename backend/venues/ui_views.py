@@ -68,24 +68,31 @@ def _venue_dict(venue):
 
 
 def _map_buildings():
-    """Group active catalog venues into map buildings; venues without a position are skipped."""
+    """Group active venues into map buildings; venues without a map position go to the fallback list."""
     buildings = {}
+    others = []
     for venue in Venue.objects.filter(is_active=True).order_by("id"):
         key = CATALOG_BUILDING.get(venue.name)
         pos = VENUE_POS.get(key)
         if pos is None:
+            others.append(_venue_dict(venue))
             continue
         building = buildings.setdefault(
             key,
             {"id": venue.id, "name": BUILDING_LABEL.get(key, key), "pos": pos, "sports": []},
         )
         building["sports"] += [{**s, "venue_id": venue.id} for s in _venue_sports(venue)]
-    return list(buildings.values())
+    return list(buildings.values()), others
 
 
 @require_GET
 def venue_map(request):
-    return render(request, "venues/venue_map.html", {"venues": _map_buildings()})
+    buildings, other_venues = _map_buildings()
+    return render(
+        request,
+        "venues/venue_map.html",
+        {"venues": buildings, "other_venues": other_venues},
+    )
 
 
 @require_GET

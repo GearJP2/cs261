@@ -21,5 +21,15 @@
 {% endif %}
 {% endfor %}
 </div>
+{% if other_venues %}
+<section class="other-venues">
+<h2>สนามอื่น ๆ</h2>
+<ul>
+{% for v in other_venues %}
+<li><a href="{% url 'venues:venue_detail' v.id %}" class="other-venue-card"><strong>{{ v.name }}</strong><span class="other-venue-sports">{% for s in v.sports %}{{ s.emoji }} {{ s.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>{% for line in v.hours %}<span class="other-venue-hours">{{ line }}</span>{% endfor %}</a></li>
+{% endfor %}
+</ul>
+</section>
+{% endif %}
 </section>
 {% endblock %}

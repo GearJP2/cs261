@@ -55,7 +55,24 @@ body.vu-page {
   cursor: pointer;
 }
 .vu-btn:hover { background: #f0b830; }
-.vu-btn-mobile { display: none; }
+
+/* ปุ่มที่ยังใช้ไม่ได้ (เร็วๆ นี้) */
+.vu-btn--soon {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #e6e1d6;
+  color: #8a8577;
+  cursor: not-allowed;
+}
+.vu-btn--soon:hover { background: #e6e1d6; }
+.vu-soon-badge {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
 
 /* หน้าอาคาร: การ์ดกีฬา */
 .vu-grid {
@@ -164,7 +181,7 @@ body.vu-page {
   .vu-sport-main .vu-title { margin-top: 24px; }
 }
 
-/* การ์ดคอร์ตแบบมือถือ: รูปบน เนื้อหาล่าง (ปุ่มสลับข้อความที่ breakpoint เดียวกัน) */
+/* การ์ดคอร์ตแบบมือถือ: รูปบน เนื้อหาล่าง */
 @media (max-width: 699.98px) {
   .vu-court { flex-direction: column; min-height: 0; }
   .vu-court-img {
@@ -175,6 +192,4 @@ body.vu-page {
   }
   .vu-court-body { padding: 16px 20px 20px; }
   .vu-court-body .vu-btn { margin-top: 16px; }
-  .vu-btn-desktop { display: none; }
-  .vu-btn-mobile { display: inline; }
 }

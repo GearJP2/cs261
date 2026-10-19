@@ -295,3 +295,49 @@ body.gym-detail-page {
 }
 .yellow-building:hover .building-name,
 .yellow-building:focus-within .building-name { display: none; }
+
+/* สนามที่ยังไม่มีตำแหน่งบนแผนที่ */
+.other-venues {
+  padding: 1rem 16px 2.5rem;
+  box-sizing: border-box;
+  text-align: left;
+}
+.other-venues h2 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #233f35;
+  margin: 0 0 12px;
+}
+.other-venues ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+.other-venue-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  top: 0;
+  padding: 14px 18px;
+  border-radius: 10px;
+  background: #FDC980;
+  box-shadow: 0 6px 0 #DB835F;
+  color: #233f35;
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+.other-venue-card:hover { background: rgb(255, 197, 24); }
+.other-venue-card:active { top: 6px; box-shadow: none; }
+.other-venue-sports,
+.other-venue-hours { font-size: 0.85rem; color: #4a4a4a; }
+
+@media (min-width: 700px) {
+  .other-venues { padding-inline: 24px; }
+}
+@media (max-width: 699.98px) {
+  .other-venues ul { grid-template-columns: 1fr; }
+}
