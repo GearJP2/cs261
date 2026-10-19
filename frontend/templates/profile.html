@@ -1,18 +1,22 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block content %}
-<!-- ดึงฟอนต์ Prompt จาก Google Fonts -->
+{% block title %}โปรไฟล์ผู้ใช้ | UniSport Buddy{% endblock %}
+{% block extra_css %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{% static 'css/profile.css' %}">
+{% endblock %}
+{% block body_class %}profile-page-body{% endblock %}
 
+{% block content %}
 <div class="profile-page">
     <!-- ปุ่ม ย้อนกลับ -->
-    <a class="profile-back" href="/" aria-label="กลับสู่หน้าหลัก">
+    <a class="profile-back" href="{% url 'home' %}" aria-label="กลับสู่หน้าหลัก">
         <span aria-hidden="true">&#8592;</span> ย้อนกลับ
     </a>
 
-    <main class="profile-content">
+    <div class="profile-content">
         {% if profile is None %}
             <section class="profile-not-found" aria-labelledby="profile-title">
                 <div class="profile-avatar-placeholder" aria-hidden="true">
@@ -39,7 +43,6 @@
                         </svg>
                     </div>
                 {% endif %}
-                
                 <h1>{{ profile.name }}</h1>
             </header>
 
@@ -71,9 +74,11 @@
                             <li>{% if interest.name %}{{ interest.name }}{% else %}{{ interest }}{% endif %}</li>
                         {% endfor %}
                     </ul>
+                {% else %}
+                    <p class="profile-empty">ยังไม่ได้ระบุกีฬาที่สนใจ</p>
                 {% endif %}
             </section>
         {% endif %}
-    </main>
+    </div>
 </div>
 {% endblock %}
