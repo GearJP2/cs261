@@ -42,6 +42,20 @@ def call_university_api(username, password):
         with urlopen(request, timeout=10) as response:
             result = json.load(response)
     except HTTPError as exc:
+        # TU also uses 400 for malformed requests. Only its documented
+        # credential rejection is a login failure; do not expose provider text.
+        with exc:
+            if exc.code == 400:
+                try:
+                    error_body = json.load(exc)
+                except (ValueError, UnicodeDecodeError, OSError):
+                    error_body = None
+                if (
+                    isinstance(error_body, dict)
+                    and error_body.get("status") is False
+                    and error_body.get("message") == "User or Password Invalid!"
+                ):
+                    raise UniversityLoginRejected("เข้าสู่ระบบไม่สำเร็จ") from exc
         raise UniversityAPIError(f"API ตอบ HTTP {exc.code}") from exc
     except (URLError, TimeoutError) as exc:
         raise UniversityAPIError("เชื่อมต่อ API มหาวิทยาลัยไม่สำเร็จ") from exc
