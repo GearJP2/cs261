@@ -47,6 +47,7 @@
 | --- | --- | --- |
 | 401 | AUTH_REQUIRED | ไม่มี session ที่ใช้งานได้ |
 | 403 | ACCOUNT_INACTIVE | shared guard ได้รับ authenticated user ที่ inactive |
+| 403 | FORBIDDEN | session ไม่มี identity มหาวิทยาลัยที่ผ่าน guard ของ US1-B |
 | 404 | NOT_FOUND | ไม่พบ UserProfile ตาม User ID |
 | 405 | METHOD_NOT_ALLOWED | method ที่เข้า view ไม่ใช่ GET; ส่ง Allow: GET |
 
@@ -59,11 +60,11 @@
 - `backend/accounts/views.py`: public_profile อ่าน UserProfile และ UserSportInterest/Sport ด้วยสอง queries (ไม่รวม session/auth) และประกอบ response ตาม allowlist
 - `backend/accounts/urls.py`: route ของ API-10
 - `backend/config/urls.py`: include accounts.urls ใต้ `/api/v1/`
-- `backend/accounts/test_profile_api.py`: endpoint tests ด้วย local sessions และข้อมูลในฐานทดสอบ
+- `backend/accounts/test_profile_api.py`: endpoint tests ด้วย university identity/session fixtures และข้อมูลในฐานทดสอบ
 
 ## ขอบเขตที่ยังรอ
 
-- US1: ตรวจสิทธิ์นักศึกษาและนโยบาย session จริง ตอนนี้ใช้ local session guard เดิม ไม่ถือว่า tests ยืนยันการเชื่อมมหาวิทยาลัย
+- BASE-04 เชื่อม guard ของ US1-B แล้ว ต้องมี university identity/session ที่ผ่าน [นโยบายร่วม](base-04-api.md#การเชื่อม-us1-b-และขอบเขตที่เหลือ) ตรวจหลักฐานจาก login ล่าสุด ไม่เรียก TU ทุก request; การทดสอบกับ TU จริงและนโยบาย recheck ยังแยกจาก local tests
 - US8-F: หน้า HTML `/users/{id}` และการเชื่อมจากชื่อ Host เป็นงาน Frontend ไม่ได้เพิ่มใน US8-B
 - การแก้ไขโปรไฟล์ การคำนวณคะแนนดาว และการหักเครดิตไม่อยู่ในงานนี้
 - ไม่มีการเพิ่ม seed ลงฐานพัฒนา; tests สร้างข้อมูลแยกใน test database
