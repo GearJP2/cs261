@@ -1,6 +1,6 @@
 import json
 import urllib.request
-from urllib.error import URLError, HTTPError
+from urllib.error import HTTPError, URLError
 
 from django.db import DatabaseError, connection
 from django.http import JsonResponse
