@@ -1,10 +1,11 @@
 import json
 from datetime import time
 
-from accounts.models import UserProfile
+from accounts.models import UniversityIdentity, UserProfile
 from django.contrib.auth import get_user_model
 from django.test import RequestFactory, TestCase
 from django.urls import reverse
+from django.utils import timezone
 from venues.models import Sport, Venue, VenueOpeningHour, VenueSport
 
 from .models import Party, PartyMembership
@@ -12,7 +13,7 @@ from .views import create_party_api
 
 
 class PartyCreationHandlerTests(TestCase):
-    """Handler tests only; URL/auth/CSRF integration waits for US1."""
+    """RequestFactory handler tests; full HTTP integration is tested separately."""
 
     def setUp(self):
         self.user = get_user_model().objects.create_user(username="api-host")
@@ -39,7 +40,17 @@ class PartyCreationHandlerTests(TestCase):
 
     def request(self, body, content_type="application/json", method="post"):
         request = getattr(self.factory, method)(self.url, data=body, content_type=content_type)
-        request.user = self.user  # Trusted actor supplied by future US1 integration.
+        request.user = self.user
+        identity, _ = UniversityIdentity.objects.get_or_create(
+            user=request.user,
+            provider_key="tu",
+            subject=str(request.user.pk),
+            defaults={
+                "student_verified_at": timezone.now(),
+                "eligibility_checked_at": timezone.now(),
+            },
+        )
+        request.session = {"university_identity_id": identity.pk}
         response = create_party_api(request)
         response.json = lambda: json.loads(response.content)
         return response

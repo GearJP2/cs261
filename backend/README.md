@@ -31,3 +31,9 @@ make verify
 
 อ่านกีฬา สนาม active ตามกีฬา และเวลาเปิดผ่าน API-03–05; ฝั่งสร้าง/แก้ Party import
 `venues.services.validate_party_schedule` ใช้ตรงได้ ดู [contract และ errors](../docs/us9-b2-api.md)
+
+## US7-B — สร้าง แก้ไข และยกเลิก Party
+
+เปิด POST `/api/v1/parties`, PATCH `/api/v1/parties/{id}` และ POST `/api/v1/parties/{id}/cancel`
+ใช้ university session guard จาก US1 และ CSRF middleware; Edit/Cancel ตรวจ Host ภายใต้ Party lock
+ดู [US7 Backend API](../docs/us7-b-api.md) สำหรับ contract, transaction และ tests

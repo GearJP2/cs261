@@ -310,12 +310,12 @@ class PartyDetailTests(TestCase):
 
     def test_unsupported_methods_do_not_change_party(self):
         force_university_login(self.client, self.host)
-        for method in ("post", "put", "patch", "delete", "options"):
+        for method in ("post", "put", "delete", "options"):
             with self.subTest(method=method):
                 response = getattr(self.client, method)(self.url)
                 self.assertEqual(response.status_code, 405)
                 self.assertEqual(response.json()["error"]["code"], "METHOD_NOT_ALLOWED")
-                self.assertEqual(response["Allow"], "GET")
+                self.assertEqual(response["Allow"], "GET, PATCH")
         self.party.refresh_from_db()
         self.assertIsNone(self.party.cancelled_at)
         self.assertEqual(count_active_members(self.party), 2)

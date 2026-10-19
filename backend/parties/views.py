@@ -1,5 +1,6 @@
 import json
 
+from accounts.decorators import require_university_user
 from core.api import json_error, require_authenticated_api
 from django.http import JsonResponse
 from django.utils import timezone
@@ -50,9 +51,11 @@ def party_data(party, user):
 @never_cache
 @require_authenticated_api
 def party_detail(request, party_id):
+    if request.method == "PATCH":
+        return edit_party_api(request, party_id)
     if request.method != "GET":
-        response = json_error("METHOD_NOT_ALLOWED", "รองรับเฉพาะ GET", 405)
-        response["Allow"] = "GET"
+        response = json_error("METHOD_NOT_ALLOWED", "รองรับเฉพาะ GET และ PATCH", 405)
+        response["Allow"] = "GET, PATCH"
         return response
 
     try:
@@ -136,9 +139,8 @@ def parse_party_datetimes(payload, fields):
             payload[key] = parsed
 
 
-# Integration TODO: apply the US1 university guard before registering a URL.
-# This handler expects request.user to have already passed that guard.
 @never_cache
+@require_university_user
 def create_party_api(request):
     if request.method != "POST":
         response = json_error("METHOD_NOT_ALLOWED", "รองรับเฉพาะ POST", 405)
@@ -168,9 +170,8 @@ def create_party_api(request):
     return JsonResponse({"data": party_data(party, request.user)}, status=201)
 
 
-# Integration TODO: apply the US1 university guard before registering a URL.
-# This handler expects request.user to have already passed that guard.
 @never_cache
+@require_university_user
 def cancel_party_api(request, party_id):
     if request.method != "POST":
         response = json_error("METHOD_NOT_ALLOWED", "รองรับเฉพาะ POST", 405)
@@ -199,9 +200,8 @@ def cancel_party_api(request, party_id):
     )
 
 
-# Integration TODO: apply the US1 university guard before registering a URL.
-# This handler expects request.user to have already passed that guard.
 @never_cache
+@require_university_user
 def edit_party_api(request, party_id):
     if request.method != "PATCH":
         response = json_error("METHOD_NOT_ALLOWED", "รองรับเฉพาะ PATCH", 405)

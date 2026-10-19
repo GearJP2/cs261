@@ -1,5 +1,6 @@
 import json
 
+from accounts.models import UniversityIdentity
 from django.test import RequestFactory, TestCase
 from django.utils import timezone
 
@@ -8,7 +9,7 @@ from .views import cancel_party_api
 
 
 class CancelPartyHandlerTests(JoinRequestFixture, TestCase):
-    """Handler only; route/auth/CSRF integration waits for US1."""
+    """RequestFactory handler tests; full HTTP integration is tested separately."""
 
     def call(
         self, *, user=None, body="{}", content_type="application/json", method="post", party_id=None
@@ -19,6 +20,16 @@ class CancelPartyHandlerTests(JoinRequestFixture, TestCase):
             content_type=content_type,
         )
         request.user = user if user is not None else self.host
+        identity, _ = UniversityIdentity.objects.get_or_create(
+            user=request.user,
+            provider_key="tu",
+            subject=str(request.user.pk),
+            defaults={
+                "student_verified_at": timezone.now(),
+                "eligibility_checked_at": timezone.now(),
+            },
+        )
+        request.session = {"university_identity_id": identity.pk}
         return cancel_party_api(request, self.party.pk if party_id is None else party_id)
 
     def test_success_and_repeat_return_same_public_data(self):
