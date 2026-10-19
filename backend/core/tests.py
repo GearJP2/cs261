@@ -1,6 +1,7 @@
 import json
 from unittest.mock import patch
 
+from accounts.test_support import force_university_login
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 from django.db import OperationalError
@@ -11,7 +12,7 @@ from django.urls import reverse
 from .api import json_error, require_authenticated_api
 
 
-class ApiHelperTests(SimpleTestCase):
+class ApiHelperTests(TestCase):
     def test_json_error_supports_field_errors(self):
         response = json_error("INVALID_INPUT", "ข้อมูลไม่ถูกต้อง", 400, fields={"title": "กรุณาระบุชื่อ"})
         self.assertEqual(response.status_code, 400)
@@ -45,17 +46,35 @@ class ApiHelperTests(SimpleTestCase):
                 self.assertEqual(error["code"], code)
                 self.assertEqual(set(error), {"code", "message"})
 
-    def test_guard_allows_active_user_and_preserves_view_arguments(self):
+    def test_guard_allows_verified_user_and_preserves_view_arguments(self):
         @require_authenticated_api
         def protected(request, party_id):
             return JsonResponse({"data": {"id": party_id, "user_id": request.user.pk}})
 
         request = RequestFactory().get("/api/v1/example?user_id=999")
-        request.user = get_user_model()(pk=7, is_active=True)
+        request.user = get_user_model().objects.create_user("guard-user")
+        identity = force_university_login(self.client, request.user)
+        request.session = self.client.session
         response = protected(request, party_id=12)
         self.assertEqual(protected.__name__, "protected")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(json.loads(response.content), {"data": {"id": 12, "user_id": 7}})
+        self.assertEqual(
+            json.loads(response.content), {"data": {"id": 12, "user_id": request.user.pk}}
+        )
+        self.assertEqual(request.university_identity, identity)
+
+    def test_guard_denies_local_login_without_university_identity(self):
+        @require_authenticated_api
+        def protected(request):
+            self.fail("Local-only sessions must not reach the view")
+
+        request = RequestFactory().get("/api/v1/example")
+        request.user = get_user_model().objects.create_user("local-only")
+        self.client.force_login(request.user)
+        request.session = self.client.session
+        response = protected(request)
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(json.loads(response.content)["error"]["code"], "FORBIDDEN")
 
 
 class PublicPageTests(SimpleTestCase):
