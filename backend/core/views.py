@@ -15,7 +15,7 @@ def home(request):
 
 @require_GET
 def profile_view(request, id):
-    api_url = request.build_absolute_uri(f'/api/v1/users/{id}/profile')
+    api_url = request.build_absolute_uri(f"/api/v1/users/{id}/profile")
 
     try:
         req = urllib.request.Request(api_url)
@@ -26,7 +26,7 @@ def profile_view(request, id):
 
         with urllib.request.urlopen(req, timeout=5) as response:
             if response.status == 200:
-                data = response.read().decode('utf-8')
+                data = response.read().decode("utf-8")
                 profile = json.loads(data)
             else:
                 profile = None
