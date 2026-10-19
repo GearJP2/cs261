@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from accounts.models import UniversityIdentity, UserProfile
+from accounts.test_support import force_university_login
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
 from django.db.models.deletion import ProtectedError
@@ -241,12 +242,12 @@ class PartyDetailTests(TestCase):
         self.assertEqual(response.status_code, 401)
         self.assertEqual(
             response.json(),
-            {"error": {"code": "AUTH_REQUIRED", "message": "กรุณาเข้าสู่ระบบก่อนใช้งาน"}},
+            {"error": {"code": "AUTH_REQUIRED", "message": "กรุณาเข้าสู่ระบบ"}},
         )
         self.assertNotIn("Location", response)
 
     def test_detail_has_exact_public_contract_and_ignores_forged_actor(self):
-        self.client.force_login(self.outsider)
+        force_university_login(self.client, self.outsider)
         response = self.client.get(self.url, {"user_id": self.host.pk, "host_id": self.host.pk})
         self.assertEqual(self.url, f"/api/v1/parties/{self.party.pk}")
         self.assertEqual(response.status_code, 200)
@@ -282,7 +283,7 @@ class PartyDetailTests(TestCase):
             (self.rejected, False, False),
         ):
             with self.subTest(user=user.username):
-                self.client.force_login(user)
+                force_university_login(self.client, user)
                 data = self.client.get(self.url).json()["data"]
                 self.assertEqual(data["is_host"], is_host)
                 self.assertEqual(data["is_member"], is_member)
@@ -290,7 +291,7 @@ class PartyDetailTests(TestCase):
                 self.assertEqual(data["remaining_slots"], 2)
 
     def test_missing_party_returns_json_404(self):
-        self.client.force_login(self.outsider)
+        force_university_login(self.client, self.outsider)
         response = self.client.get(reverse("party-detail", kwargs={"party_id": self.party.pk + 1}))
         self.assertEqual(response.status_code, 404)
         self.assertEqual(
@@ -300,7 +301,7 @@ class PartyDetailTests(TestCase):
 
     def test_missing_profile_uses_generic_label_without_exposing_login(self):
         self.host.profile.delete()
-        self.client.force_login(self.outsider)
+        force_university_login(self.client, self.outsider)
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["data"]["host"]["display_name"], "ผู้จัดกิจกรรม")
@@ -308,7 +309,7 @@ class PartyDetailTests(TestCase):
         self.assertNotContains(response, self.host.email)
 
     def test_unsupported_methods_do_not_change_party(self):
-        self.client.force_login(self.host)
+        force_university_login(self.client, self.host)
         for method in ("post", "put", "patch", "delete", "options"):
             with self.subTest(method=method):
                 response = getattr(self.client, method)(self.url)
@@ -320,10 +321,10 @@ class PartyDetailTests(TestCase):
         self.assertEqual(count_active_members(self.party), 2)
 
     def test_revoked_or_deactivated_session_cannot_read_party(self):
-        self.client.force_login(self.outsider)
+        force_university_login(self.client, self.outsider)
         self.client.logout()
         self.assertEqual(self.client.get(self.url).status_code, 401)
-        self.client.force_login(self.outsider)
+        force_university_login(self.client, self.outsider)
         self.outsider.is_active = False
         self.outsider.save(update_fields=["is_active"])
         # Django's default ModelBackend resolves an inactive session to anonymous.
@@ -334,7 +335,7 @@ class PartyDetailTests(TestCase):
     def test_full_party_response_has_consistent_state_and_remaining_slots(self):
         self.party.capacity = 2
         self.party.save(update_fields=["capacity"])
-        self.client.force_login(self.outsider)
+        force_university_login(self.client, self.outsider)
         data = self.client.get(self.url).json()["data"]
         self.assertEqual(data["state"], "Full")
         self.assertEqual(data["member_count"], 2)

@@ -10,6 +10,8 @@ from django.urls import reverse
 from django.utils import timezone
 from venues.models import Sport
 
+from accounts.test_support import force_university_login
+
 from .models import UniversityIdentity, UserProfile, UserSportInterest
 from .views import public_profile
 
@@ -39,7 +41,7 @@ class PublicProfileAcceptanceTests(TestCase):
         )
 
     def setUp(self):
-        self.client.force_login(self.viewer)
+        force_university_login(self.client, self.viewer)
         self.url = reverse("accounts:user-public-profile", args=[self.target.pk])
 
     def assert_private_response(self, response):
@@ -53,7 +55,7 @@ class PublicProfileAcceptanceTests(TestCase):
         # The same display name deliberately cannot be used as the identity key.
         UserProfile.objects.filter(user=self.second).update(display_name="นักกีฬา ก")
         second_client = Client()
-        second_client.force_login(self.other_viewer)
+        force_university_login(second_client, self.other_viewer)
         for client in (self.client, second_client):
             for target, credit, sports in (
                 (self.target, 0, [{"id": self.badminton.pk, "name": "แบดมินตัน"}]),
@@ -140,7 +142,7 @@ class PublicProfileAcceptanceTests(TestCase):
 
     def test_csrf_enforcement_allows_get_but_rejects_unsafe_write_without_token(self):
         browser = Client(enforce_csrf_checks=True)
-        browser.force_login(self.viewer)
+        force_university_login(browser, self.viewer)
         self.assertEqual(browser.get(self.url).status_code, 200)
         response = browser.patch(
             self.url, data={"credit_score": 999}, content_type="application/json"
