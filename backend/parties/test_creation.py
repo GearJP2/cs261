@@ -8,7 +8,7 @@ from django.db import IntegrityError
 from django.test import TestCase
 from django.utils import timezone
 from venues.models import Sport, Venue, VenueOpeningHour, VenueSport
-from venues.services import ScheduleError, validate_party_schedule
+from venues.services import ScheduleValidationError, validate_party_schedule
 
 from .models import Party, PartyMembership
 from .services import PartyError, create_party
@@ -113,11 +113,11 @@ class PartyCreationTests(TestCase):
             )
 
     def test_standalone_schedule_rejects_naive_time(self):
-        with self.assertRaises(ScheduleError) as caught:
+        with self.assertRaises(ScheduleValidationError) as caught:
             validate_party_schedule(
                 self.sport.pk,
                 self.venue.pk,
                 self.start.replace(tzinfo=None),
                 self.start,
             )
-        self.assertEqual(caught.exception.code, "INVALID_INPUT")
+        self.assertEqual(caught.exception.code, "INVALID_TIME_RANGE")

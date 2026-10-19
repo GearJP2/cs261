@@ -2,6 +2,7 @@ import json
 from datetime import time, timedelta
 
 from accounts.models import UniversityIdentity
+from accounts.test_support import force_university_login
 from django.test import RequestFactory, TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -70,7 +71,7 @@ class EditPartyHandlerTests(JoinRequestFixture, TestCase):
         data = json.loads(response.content)["data"]
         self.assertEqual(data["title"], "New name")
         self.assertEqual(data["capacity"], self.party.capacity)
-        self.client.force_login(self.host)
+        force_university_login(self.client, self.host)
         detail = self.client.get(reverse("party-detail", args=[self.party.pk]))
         self.assertEqual(data, detail.json()["data"])
 

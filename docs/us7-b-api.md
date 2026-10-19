@@ -10,7 +10,7 @@ POST/PATCH ต้องผ่าน Django CSRF middleware และ university 
 ต้องใช้ university session และ CSRF cookie/header `X-CSRFToken`
 
 Create/Edit/Cancel ใช้ guard จาก US1 ที่ merge แล้ว ไม่มีการคัดลอกหรือสร้าง guard ใหม่
-GET รายละเอียดและ US3 คงใช้ guard เดิมของงานนั้น
+GET รายละเอียดและ US3 ใช้ require_authenticated_api ที่ delegate ไป university guard ของ US1 ตาม BASE-04 / PR #49
 รับ CSRF token จาก `GET /api/v1/auth/csrf` และใช้ cookie/session เดียวกัน
 
 ```json
@@ -97,7 +97,7 @@ starts_at/ends_at ที่ส่งต้องเป็น ISO 8601 พร้�
 handler ใช้ datetime parser ร่วมกับ Create แล้วส่ง changes ไป Edit service
 สำเร็จคืน 200 พร้อม Party data ชุดเดียวกับ GET; error ใช้ status/code/fields จาก service
 Tests ใน test_editing_api.py เรียก handler ผ่าน RequestFactory
-party_detail ส่ง PATCH ไป edit_party_api ที่ใช้ university guard; GET ยังใช้สิทธิ์เดิม
+party_detail ส่ง PATCH ไป edit_party_api; GET/PATCH ใช้ university session policy เดียวกัน
 method อื่นที่ path รายละเอียดคืน 405 พร้อม Allow: GET, PATCH
 
 ## Edit concurrency tests
@@ -169,6 +169,18 @@ Host authorization, atomic Host membership และ Party lock พร้อม 
 - Frontend เรียกสาม APIs ด้วย session/CSRF จริง รวม form errors และยืนยัน Cancel
 - เชื่อมรายการสนาม/เวลาเปิดของ US9 กับฟอร์มจริง; Backend ใช้ service กลางแล้ว
 - การเรียก TU API จริงเป็นการตรวจรับ US1 แยกจาก university session fixtures ของ US7
-- ส่ง PR/review และจัดการ US8 test namespace ก่อนให้ CI ทั้งชุดผ่าน
+- ส่ง PR/review และตรวจ CI บน head ใหม่; ปัญหา US8 test namespace เดิมแก้แล้วใน main / PR #49
 
 สถานะใน Sprint checklist ยังไม่ติ๊ก Done เพราะรวม review และการเชื่อม Frontend ด้วย
+
+## ผลตรวจหลัง rebase บน main / PR #49
+
+Rebase บน main `1a12e9a` โดยเก็บ force_university_login พร้อมการรองรับ PATCH
+และ Allow: GET, PATCH ใน Party detail tests; task สร้าง Party ของ main และลิงก์ docs นี้ยังอยู่ครบ
+ปรับ GET response tests ฝั่ง Create/Edit ให้ใช้ university-session helper ของทีม
+คง schedule contract ของ US9 รวมถึง validation capacity และ NUL
+
+- `make verify` ผ่านทั้งชุด: Django checks, migration drift, Ruff lint/format และ 235 tests
+- `make smoke` ผ่าน: HTTP, PostgreSQL readiness, template และ static CSS
+- ไม่ต้องข้าม US8 tests แล้ว; ผล 8 errors ด้านบนเป็นผลประวัติก่อนรวม PR #49
+- ผลนี้เป็น local verification; ต้องตรวจ GitHub Actions บน head ที่ push ใหม่ก่อน merge

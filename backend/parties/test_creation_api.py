@@ -2,6 +2,7 @@ import json
 from datetime import time
 
 from accounts.models import UniversityIdentity, UserProfile
+from accounts.test_support import force_university_login
 from django.contrib.auth import get_user_model
 from django.test import RequestFactory, TestCase
 from django.urls import reverse
@@ -70,7 +71,7 @@ class PartyCreationHandlerTests(TestCase):
         party = Party.objects.get()
         self.assertEqual(party.description, "")
         self.assertEqual(PartyMembership.objects.get().user_id, self.user.pk)
-        self.client.force_login(self.user)
+        force_university_login(self.client, self.user)
         detail = self.client.get(reverse("party-detail", args=[party.pk]))
         self.assertEqual(data, detail.json()["data"])
 

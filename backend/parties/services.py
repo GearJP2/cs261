@@ -4,7 +4,7 @@ from datetime import datetime
 
 from django.db import transaction
 from django.utils import timezone
-from venues.services import ScheduleError, validate_party_schedule
+from venues.services import ScheduleValidationError, validate_party_schedule
 
 from .models import JoinRequest, Party, PartyMembership
 
@@ -79,7 +79,7 @@ def validate_party_data(
 
     try:
         validate_party_schedule(sport_id, venue_id, starts_at, ends_at)
-    except ScheduleError as error:
+    except ScheduleValidationError as error:
         raise PartyError(error.code, error.message, error.status, error.fields) from error
 
 
