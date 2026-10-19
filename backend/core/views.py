@@ -16,19 +16,19 @@ def home(request):
 @require_GET
 def profile_view(request, id):
     api_url = request.build_absolute_uri(f"/api/v1/users/{id}/profile")
-    
+
     status_code = 200
     try:
         req = urllib.request.Request(api_url)
-        
+
         cookie_header = "; ".join([f"{k}={v}" for k, v in request.COOKIES.items()])
         if cookie_header:
             req.add_header("Cookie", cookie_header)
-            
+
         with urllib.request.urlopen(req, timeout=5) as response:
             data = response.read().decode("utf-8")
             profile = json.loads(data)
-            
+
     except HTTPError as e:
         profile = None
         status_code = e.code
