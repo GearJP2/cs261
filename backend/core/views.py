@@ -19,7 +19,15 @@ def login_page(request):
 
 @require_GET
 def party_create_page(request):
-    return render(request, "party_form.html", {"mode": "create"})
+    return render(
+        request,
+        "party_form.html",
+        {
+            "mode": "create",
+            "sport_id": request.GET.get("sport_id", ""),
+            "venue_id": request.GET.get("venue_id", ""),
+        },
+    )
 
 
 @require_GET

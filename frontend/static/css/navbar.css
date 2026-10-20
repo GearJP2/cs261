@@ -2,10 +2,12 @@
   background: #fff;
   font-family: "Prompt", sans-serif;
   color: #1f2430;
+  width: 100%;
 }
 .nv a { color: inherit; text-decoration: none; }
 .nv-inner {
-  max-width: 1160px;
+  width: 100%;
+  box-sizing: border-box;
   margin: 0 auto;
   padding: 0 24px;
   height: 70px;
@@ -128,4 +130,13 @@
     overflow-x: auto;
     white-space: nowrap;
   }
+}
+
+@media (max-width: 480px) {
+  .nv-inner { padding-inline: 16px; gap: 8px; }
+  .nv-brand { gap: 6px; font-size: 1rem; }
+  .nv-logo { width: 32px; height: 32px; font-size: 1rem; }
+  .nv-right { gap: 8px; }
+  .nv-create { padding: 9px 10px; font-size: .82rem; }
+  .nv-chev { display: none; }
 }

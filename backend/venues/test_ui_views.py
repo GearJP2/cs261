@@ -57,15 +57,29 @@ class VenueMapTests(VenueUiTestCase):
             [("เทนนิส", tennis.id), ("พิกเคิลบอล", pickleball.id)],
         )
 
-    def test_sport_menu_links_use_each_sports_venue_id(self):
+    def test_sport_menu_links_start_party_with_each_sports_venue_id(self):
         tennis = self.add_venue("สนามเทนนิส", "เทนนิส")
         pickleball = self.add_venue("สนามพิกเคิลบอล", "พิกเคิลบอล")
         sport = Sport.objects.get(name="พิกเคิลบอล")
 
         response = self.client.get(reverse("venues:venue_map"))
 
-        self.assertContains(response, f'href="/venues/{pickleball.id}/sports/{sport.id}/"')
-        self.assertNotContains(response, f'href="/venues/{tennis.id}/sports/{sport.id}/"')
+        self.assertContains(
+            response,
+            f'href="/parties/new/?sport_id={sport.id}&amp;venue_id={pickleball.id}"',
+        )
+        self.assertNotContains(response, f"sport_id={sport.id}&amp;venue_id={tennis.id}")
+
+    def test_single_sport_marker_starts_party_with_its_selected_values(self):
+        venue = self.add_venue("สนามฟุตซอล", "ฟุตซอล")
+        sport = Sport.objects.get(name="ฟุตซอล")
+
+        response = self.client.get(reverse("venues:venue_map"))
+
+        self.assertContains(
+            response,
+            f'href="/parties/new/?sport_id={sport.id}&amp;venue_id={venue.id}"',
+        )
 
     def test_unmapped_active_venues_are_listed_under_other_venues(self):
         softball = self.add_venue("สนามซอฟท์บอล", "ซอฟท์บอล")
@@ -188,21 +202,18 @@ class SportDetailTests(VenueUiTestCase):
         self.assertEqual(response.context["back_url"], reverse("venues:venue_map"))
         self.assertEqual(response.context["sport"]["courts"], ["สควอช คอร์ต 01", "สควอช คอร์ต 02"])
 
-    def test_court_buttons_are_disabled_coming_soon(self):
+    def test_court_buttons_link_to_create_party_with_selected_venue_and_sport(self):
         venue = self.add_venue("สนามสควอช ยิมเนเซียม 7", "สควอช")
         sport = Sport.objects.get(name="สควอช")
 
         response = self.client.get(reverse("venues:sport_detail", args=[venue.id, sport.id]))
 
         html = response.content.decode()
-        buttons = re.findall(r"<button([^>]*)>(.*?)</button>", html, re.S)
-        self.assertEqual(len(buttons), 2)
-        for attrs, label in buttons:
-            self.assertIn(" disabled", attrs)
-            self.assertIn('aria-disabled="true"', attrs)
-            self.assertEqual(re.sub(r"<span[^>]*>.*?</span>", "", label).strip(), "เลือก")
+        links = re.findall(r'<a class="vu-btn" href="([^"]+)">เลือก</a>', html)
+        self.assertEqual(len(links), 2)
+        expected = f"{reverse('party-create-page')}?sport_id={sport.id}&amp;venue_id={venue.id}"
+        self.assertEqual(links, [expected, expected])
         self.assertContains(response, "เลือก", count=2)
-        self.assertContains(response, '<span class="vu-soon-badge">เร็วๆ นี้</span>', count=2)
         self.assertNotContains(response, "ดูรายละเอียด")
 
     def test_sport_not_linked_to_venue_returns_404(self):

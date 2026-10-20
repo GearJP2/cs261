@@ -35,8 +35,11 @@ def validate_party_schedule(sport_id, venue_id, starts_at, ends_at):
             raise ScheduleValidationError(
                 "INVALID_TIME_RANGE", "วันเวลาต้องมี timezone offset", {field: "ระบุ offset"}
             )
-    start = starts_at.astimezone(BANGKOK)
-    end = ends_at.astimezone(BANGKOK)
+    try:
+        start = starts_at.astimezone(BANGKOK)
+        end = ends_at.astimezone(BANGKOK)
+    except OverflowError as error:
+        raise ScheduleValidationError("INVALID_TIME_RANGE", "วันเวลาอยู่นอกช่วงที่รองรับ") from error
     if start >= end or start.date() != end.date():
         raise ScheduleValidationError("INVALID_TIME_RANGE", "เวลาเริ่มต้องก่อนเวลาจบและอยู่ในวันเดียวกัน")
     try:

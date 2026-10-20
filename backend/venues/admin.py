@@ -1,3 +1,5 @@
-# from django.contrib import admin
+from django.contrib import admin
 
-# Register your models here.
+from .models import Sport, Venue, VenueOpeningHour, VenueSport
+
+admin.site.register([Sport, Venue, VenueSport, VenueOpeningHour])

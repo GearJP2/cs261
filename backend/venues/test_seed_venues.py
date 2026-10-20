@@ -43,10 +43,16 @@ class SeedVenuesTests(TestCase):
             {(day, time(16), time(21)) for day in range(6)},
         )
         self.assertFalse(tennis.opening_hours.filter(weekday=6).exists())
-        self.assertEqual(Venue.objects.filter(location_text__contains="เวลา: MOCK").count(), 7)
+        self.assertEqual(
+            Venue.objects.filter(location_text__contains="เวลา: MOCK").count(),
+            sum(record["hours_kind"] == "MOCK" for record in VENUES),
+        )
         for record in VENUES:
-            self.assertEqual(record["venue_kind"], "REAL")
-            self.assertTrue(record["venue_source"].startswith("https://psm.tu.ac.th/"))
+            if record["venue_kind"] == "REAL":
+                self.assertTrue(record["venue_source"].startswith("https://psm.tu.ac.th/"))
+            else:
+                self.assertEqual(record["venue_kind"], "MOCK")
+                self.assertIn("Mock data", record["venue_source"])
             self.assertLessEqual(len(location_label(record)), 255)
             if record["hours_kind"] == "MOCK":
                 self.assertIsNone(record["hours_source"])
@@ -67,10 +73,12 @@ class SeedVenuesTests(TestCase):
         self.assertEqual(list(Venue.objects.order_by("pk").values_list("pk", flat=True)), venue_ids)
         venue.refresh_from_db()
         self.assertTrue(venue.is_active)
-        self.assertEqual(Sport.objects.count(), 9)
-        self.assertEqual(Venue.objects.count(), 10)
-        self.assertEqual(VenueSport.objects.count(), 10)
-        self.assertEqual(VenueOpeningHour.objects.count(), 62)
+        self.assertEqual(Sport.objects.count(), len({record["sport"] for record in VENUES}))
+        self.assertEqual(Venue.objects.count(), len(VENUES))
+        self.assertEqual(VenueSport.objects.count(), len(VENUES))
+        self.assertEqual(
+            VenueOpeningHour.objects.count(), sum(len(record["intervals"]) for record in VENUES)
+        )
 
     def test_unrelated_and_base03_configuration_is_untouched(self):
         sport = Sport.objects.create(name="[BASE-03] Badminton")

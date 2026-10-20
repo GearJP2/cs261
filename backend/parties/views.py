@@ -2,6 +2,7 @@ import json
 
 from accounts.decorators import require_university_user
 from core.api import json_error, require_authenticated_api
+from django.db.models import Count, F, Q
 from django.http import JsonResponse
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -16,6 +17,7 @@ from .services import (
     cancel_party,
     count_active_members,
     create_party,
+    decide_join_request,
     edit_party,
     get_party_state,
     submit_join_request,
@@ -24,7 +26,11 @@ from .services import (
 
 def party_data(party, user):
     profile = getattr(party.host, "profile", None)
-    member_count = count_active_members(party)
+    member_count = (
+        party.active_member_count
+        if hasattr(party, "active_member_count")
+        else count_active_members(party)
+    )
     return {
         "id": party.pk,
         "title": party.title,
@@ -131,6 +137,71 @@ def create_join_request(request, party_id):
 
 
 @never_cache
+@require_university_user
+def join_requests(request, party_id):
+    if request.method != "GET":
+        response = json_error("METHOD_NOT_ALLOWED", "รองรับเฉพาะ GET", 405)
+        response["Allow"] = "GET"
+        return response
+    try:
+        party = Party.objects.get(pk=party_id)
+    except Party.DoesNotExist:
+        return json_error("NOT_FOUND", "ไม่พบกิจกรรมที่ต้องการ", 404)
+    if party.host_id != request.user.pk:
+        return json_error("FORBIDDEN", "เฉพาะผู้จัดกิจกรรมเท่านั้นที่ดูคำขอได้", 403)
+    rows = (
+        JoinRequest.objects.filter(party=party, status=JoinRequest.Status.PENDING)
+        .select_related("user__profile")
+        .order_by("created_at")
+    )
+    return JsonResponse(
+        {
+            "data": [
+                {
+                    "id": row.pk,
+                    "display_name": getattr(
+                        getattr(row.user, "profile", None), "display_name", "ผู้ใช้"
+                    ),
+                    "created_at": timezone.localtime(row.created_at).isoformat(),
+                }
+                for row in rows
+            ]
+        }
+    )
+
+
+@never_cache
+@require_university_user
+def decide_join_request_api(request, party_id, request_id):
+    if request.method != "POST":
+        response = json_error("METHOD_NOT_ALLOWED", "รองรับเฉพาะ POST", 405)
+        response["Allow"] = "POST"
+        return response
+    if request.content_type != "application/json":
+        return json_error("INVALID_INPUT", "กรุณาส่งข้อมูลเป็น JSON", 400)
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return json_error("INVALID_INPUT", "รูปแบบ JSON ไม่ถูกต้อง", 400)
+    if (
+        not isinstance(payload, dict)
+        or set(payload) != {"status"}
+        or payload["status"] not in {"Approved", "Rejected"}
+    ):
+        return json_error("INVALID_INPUT", "ระบุสถานะ Approved หรือ Rejected", 400)
+    try:
+        join_request = decide_join_request(
+            party_id=party_id,
+            request_id=request_id,
+            user=request.user,
+            approved=payload["status"] == "Approved",
+        )
+    except PartyError as error:
+        return json_error(error.code, error.message, error.status, error.fields)
+    return JsonResponse({"data": {"id": join_request.pk, "status": join_request.status}})
+
+
+@never_cache
 @require_authenticated_api
 @ensure_csrf_cookie
 def my_join_request(request, party_id):
@@ -171,12 +242,21 @@ def parse_party_datetimes(payload, fields):
 @require_university_user
 def create_party_api(request):
     if request.method == "GET":
-        parties = Party.objects.select_related("host__profile").order_by("starts_at")[:50]
+        parties = (
+            Party.objects.select_related("host__profile")
+            .filter(cancelled_at__isnull=True, starts_at__gt=timezone.now())
+            .annotate(
+                active_member_count=Count(
+                    "memberships", filter=Q(memberships__left_at__isnull=True)
+                )
+            )
+            .filter(active_member_count__lt=F("capacity"))
+            .order_by("starts_at")[:50]
+        )
         data = []
         for party in parties:
             item = party_data(party, request.user)
-            if item["state"] == "Open":
-                data.append(item)
+            data.append(item)
         return JsonResponse({"data": data})
     if request.method != "POST":
         response = json_error("METHOD_NOT_ALLOWED", "รองรับเฉพาะ GET และ POST", 405)

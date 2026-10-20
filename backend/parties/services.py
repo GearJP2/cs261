@@ -258,3 +258,39 @@ def submit_join_request(*, party_id, user):
     join_request.decided_by = None
     join_request.save(update_fields=["status", "created_at", "decided_at", "decided_by"])
     return join_request
+
+
+@transaction.atomic
+def decide_join_request(*, party_id, request_id, user, approved):
+    """Let the host decide one pending request while holding the Party lock."""
+    try:
+        party = Party.objects.select_for_update().get(pk=party_id)
+    except Party.DoesNotExist:
+        raise PartyError("NOT_FOUND", "ไม่พบกิจกรรมที่ต้องการ", 404) from None
+    if party.host_id != user.pk:
+        raise PartyError("FORBIDDEN", "เฉพาะผู้จัดกิจกรรมเท่านั้นที่จัดการคำขอได้", 403)
+    try:
+        join_request = JoinRequest.objects.select_for_update().get(pk=request_id, party=party)
+    except JoinRequest.DoesNotExist:
+        raise PartyError("NOT_FOUND", "ไม่พบคำขอเข้าร่วม", 404) from None
+    if join_request.status != JoinRequest.Status.PENDING:
+        raise PartyError("REQUEST_DECIDED", "คำขอนี้ได้รับการตัดสินแล้ว", 409)
+
+    state = get_party_state(party, timezone.now())
+    if state == "Cancelled":
+        raise PartyError("PARTY_CANCELLED", "กิจกรรมนี้ถูกยกเลิกแล้ว", 409)
+    if state in {"InProgress", "Completed"}:
+        raise PartyError("PARTY_STARTED", "กิจกรรมนี้เริ่มแล้ว", 409)
+    if approved:
+        if count_active_members(party) >= party.capacity:
+            raise PartyError("PARTY_FULL", "กิจกรรมนี้เต็มแล้ว", 409)
+        membership, _ = PartyMembership.objects.get_or_create(party=party, user=join_request.user)
+        if membership.left_at is not None:
+            membership.left_at = None
+            membership.save(update_fields=["left_at"])
+
+    join_request.status = JoinRequest.Status.APPROVED if approved else JoinRequest.Status.REJECTED
+    join_request.decided_at = timezone.now()
+    join_request.decided_by = user
+    join_request.save(update_fields=["status", "decided_at", "decided_by"])
+    return join_request
