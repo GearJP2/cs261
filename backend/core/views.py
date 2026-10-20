@@ -13,6 +13,26 @@ def home(request):
 
 
 @require_GET
+def login_page(request):
+    return render(request, "login.html")
+
+
+@require_GET
+def party_create_page(request):
+    return render(request, "party_form.html", {"mode": "create"})
+
+
+@require_GET
+def party_detail_page(request, party_id):
+    return render(request, "party_detail.html", {"party_id": party_id})
+
+
+@require_GET
+def party_edit_page(request, party_id):
+    return render(request, "party_form.html", {"mode": "edit", "party_id": party_id})
+
+
+@require_GET
 @never_cache
 @require_university_user
 def public_profile_page(request, user_id):
