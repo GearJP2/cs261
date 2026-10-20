@@ -78,7 +78,8 @@
   z-index: 50;
 }
 .nv-menu a,
-.nv-menu .is-disabled {
+.nv-menu .is-disabled,
+.nv-menu button {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -88,6 +89,8 @@
   white-space: nowrap;
 }
 .nv-menu a:hover { background: #f4f5f7; }
+.nv-menu button { width: 100%; border: 0; background: transparent; color: #1f2430; cursor: pointer; font: inherit; text-align: left; }
+.nv-menu button:hover { background: #f4f5f7; }
 
 /* ปุ่ม/ลิงก์ที่ยังไม่มีหน้าจริง: ไม่มี href, aria-disabled="true" */
 .is-disabled { cursor: not-allowed; text-decoration: none; }
