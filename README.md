@@ -81,18 +81,63 @@ Environment พัฒนาปัจจุบันใช้ Python 3.12, Django
 
 ### รันและทดสอบในเครื่อง
 
-ต้องมี Docker ที่กำลังทำงานและ Docker Compose v2 รันคำสั่งจาก root ของ repository:
+ต้องมีเพียง Git และ Docker Desktop หรือ Docker Engine ที่กำลังทำงาน พร้อม Docker Compose v2 เท่านั้น ไม่ต้องติดตั้ง Python, PostgreSQL หรือ Node.js เพิ่ม สำหรับ Windows แนะนำใช้ WSL2, เปิด Docker Desktop integration ให้ distro ที่ใช้ และเก็บ repository ไว้ใน filesystem ของ WSL
+
+Clone repository และเตรียม environment จาก root ของ project:
 
 ```bash
+git clone https://github.com/GearJP2/cs261-group2-100001.git cs261
+cd cs261
+git switch main
+git pull --ff-only origin main
 make init
+```
+
+`make init` สร้าง `.env` จาก `.env.example` เฉพาะเมื่อยังไม่มีไฟล์ และไม่คัดลอกทับค่าที่มีอยู่ หากใช้ Linux/WSL และค่าจาก `id -u` หรือ `id -g` ไม่ใช่ `1000` ให้แก้ `LOCAL_UID` และ `LOCAL_GID` ใน `.env` ให้ตรงก่อน build เพื่อให้ไฟล์ที่ container สร้างเป็นของ user ปัจจุบัน
+
+หากต้องทดสอบการเข้าสู่ระบบด้วยบัญชี TU จริง ให้เพิ่ม key ที่ทีมได้รับลง `.env` (ห้าม commit ไฟล์นี้):
+
+```env
+TU_APPLICATION_KEY=<key ของทีม>
+```
+
+เริ่มระบบและตรวจสอบ:
+
+```bash
 make up
 make verify
 make smoke
 ```
 
-เปิด <http://localhost:8000/>; PostgreSQL สำหรับเครื่องมือ DB อยู่ที่ localhost:5433 ตรวจ log ด้วย `make logs` และหยุดโดยเก็บข้อมูลด้วย `make down`
+เปิด <http://localhost:8000/>; PostgreSQL สำหรับเครื่องมือ DB อยู่ที่ `localhost:5433` โดยใช้ค่าจาก `.env` ตรวจ log ด้วย `make logs` และดูสถานะด้วย `make ps` การหยุดตามปกติใช้ `make down` ซึ่งยังเก็บข้อมูลในฐานข้อมูลไว้
 
-`make init` สร้าง `.env` เมื่อยังไม่มีไฟล์เท่านั้น ถ้ามี `.env` เดิมให้เติมค่าตาม `.env.example`; บน Linux/WSL ตรวจ LOCAL_UID/LOCAL_GID ก่อน build ดูวิธีใช้ Docker โดยไม่มี Make, migrations, การอัปเดต dependency และการทำงานแต่ละส่วนใน [คู่มือ Development](docs/development.md)
+#### ข้อมูลเดโม Sprint 1
+
+หลังเปิดระบบครั้งแรก ให้เพิ่มข้อมูลสนามสำหรับแผนที่และการสร้างห้อง:
+
+```bash
+docker compose exec -T backend python backend/manage.py seed_venues
+```
+
+คำสั่งนี้ต้องใช้ `DEBUG=true` และสร้างข้อมูลสนาม/กีฬาสำหรับ development เท่านั้น หากต้องการข้อมูล Party ตัวอย่างเพิ่ม ให้รัน:
+
+```bash
+make seed
+```
+
+#### ล้างฐานข้อมูล local
+
+เมื่อต้องการลบข้อมูลที่ทดสอบทั้งหมด เช่น users, admin, Party, คำขอเข้าร่วม และสนาม ให้ลบ PostgreSQL volume แล้วเปิดระบบใหม่:
+
+```bash
+docker compose down --volumes --remove-orphans
+make up
+docker compose exec -T backend python backend/manage.py seed_venues
+```
+
+คำสั่งนี้ลบข้อมูล local ถาวร แต่ไม่ลบ source code หรือ Docker image. หลัง `make up` ระบบจะสร้างฐานข้อมูลใหม่และใช้ migrations ที่ commit ไว้ให้โดยอัตโนมัติ
+
+ดูวิธีใช้ Docker โดยไม่มี Make, migrations, การอัปเดต dependency และการทำงานแต่ละส่วนใน [คู่มือ Development](docs/development.md)
 
 หลัง PR environment merge ให้ทุก task branch รัน `git fetch origin` และ `git merge origin/main` เพื่อใช้ environment ชุดเดียวกัน ก่อน merge สามารถทดลองที่ `chore/base-01-project-setup` ได้
 
