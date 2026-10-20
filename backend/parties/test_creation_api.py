@@ -105,8 +105,14 @@ class PartyCreationHandlerTests(TestCase):
         self.assertEqual(self.post(self.payload | {"venue_id": 999999}).status_code, 404)
         self.assertFalse(Party.objects.exists())
 
-    def test_wrong_method_is_json_405(self):
+    def test_list_only_returns_open_parties_with_the_existing_detail_contract(self):
+        created = self.post(self.payload).json()["data"]
         response = self.request({}, method="get")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"data": [created]})
+
+    def test_wrong_method_is_json_405(self):
+        response = self.request({}, method="put")
         self.assertEqual(response.status_code, 405)
-        self.assertEqual(response["Allow"], "POST")
+        self.assertEqual(response["Allow"], "GET, POST")
         self.assertEqual(response.json()["error"]["code"], "METHOD_NOT_ALLOWED")

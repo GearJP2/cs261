@@ -170,9 +170,17 @@ def parse_party_datetimes(payload, fields):
 @never_cache
 @require_university_user
 def create_party_api(request):
+    if request.method == "GET":
+        parties = Party.objects.select_related("host__profile").order_by("starts_at")[:50]
+        data = []
+        for party in parties:
+            item = party_data(party, request.user)
+            if item["state"] == "Open":
+                data.append(item)
+        return JsonResponse({"data": data})
     if request.method != "POST":
-        response = json_error("METHOD_NOT_ALLOWED", "รองรับเฉพาะ POST", 405)
-        response["Allow"] = "POST"
+        response = json_error("METHOD_NOT_ALLOWED", "รองรับเฉพาะ GET และ POST", 405)
+        response["Allow"] = "GET, POST"
         return response
     if request.content_type != "application/json":
         return json_error("INVALID_INPUT", "กรุณาส่งข้อมูลเป็น JSON", 400)

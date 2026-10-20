@@ -201,7 +201,6 @@ class PartyManagementApiTests(TestCase):
     def test_wrong_methods_use_json_and_allow_header(self):
         self.login()
         for method, url, expected in (
-            ("get", self.create_url, "POST"),
             ("get", self.cancel_url, "POST"),
             ("post", self.edit_url, "GET, PATCH"),
         ):
