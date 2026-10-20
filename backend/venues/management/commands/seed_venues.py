@@ -38,11 +38,12 @@ class Command(BaseCommand):
                     ]
                 )
                 self.stdout.write(
-                    f"{name}: venue_id={venue.pk}, venue=REAL, hours={record['hours_kind']}"
+                    f"{name}: venue_id={venue.pk}, venue={record['venue_kind']}, hours={record['hours_kind']}"
                 )
         self.stdout.write(
             self.style.SUCCESS(
-                "TU Rangsit ready: 10 venues, 9 sports; 3 published REAL schedules, "
-                "7 MOCK schedules. No live availability is verified."
+                f"TU Rangsit ready: {len(VENUES)} venues, "
+                f"{len({record['sport'] for record in VENUES})} sports. "
+                "Some venues and schedules are MOCK for the app demo."
             )
         )

@@ -572,3 +572,48 @@ class JoinRequestConcurrencyTests(JoinRequestFixture, TransactionTestCase):
         self.assertEqual(request.status, "Pending")
         self.assertIsNotNone(self.party.cancelled_at)
         self.assertEqual(count_active_members(self.party), 1)
+
+
+class JoinRequestDecisionTests(JoinRequestFixture, TestCase):
+    def setUp(self):
+        super().setUp()
+        self.request = JoinRequest.objects.create(party=self.party, user=self.applicant)
+        force_university_login(self.client, self.host)
+
+    def test_host_can_list_and_approve_pending_request(self):
+        listed = self.client.get(reverse("party-join-request-list", args=[self.party.pk]))
+        self.assertEqual(listed.status_code, 200)
+        self.assertEqual(listed.json()["data"][0]["id"], self.request.pk)
+        response = self.client.post(
+            reverse("party-join-request-decision", args=[self.party.pk, self.request.pk]),
+            data='{"status":"Approved"}',
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.request.refresh_from_db()
+        self.assertEqual(self.request.status, JoinRequest.Status.APPROVED)
+        self.assertEqual(self.request.decided_by, self.host)
+        self.assertTrue(
+            PartyMembership.objects.filter(
+                party=self.party, user=self.applicant, left_at__isnull=True
+            ).exists()
+        )
+
+    def test_only_host_can_decide_and_full_party_stays_pending(self):
+        force_university_login(self.client, self.other)
+        url = reverse("party-join-request-decision", args=[self.party.pk, self.request.pk])
+        self.assertEqual(
+            self.client.post(
+                url, data='{"status":"Rejected"}', content_type="application/json"
+            ).status_code,
+            403,
+        )
+        force_university_login(self.client, self.host)
+        self.party.capacity = 1
+        self.party.save(update_fields=["capacity"])
+        response = self.client.post(
+            url, data='{"status":"Approved"}', content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 409)
+        self.request.refresh_from_db()
+        self.assertEqual(self.request.status, JoinRequest.Status.PENDING)

@@ -20,6 +20,8 @@ CATALOG_BUILDING = {
     "สนามบาสเกตบอล": "Gym 7",
     "สนามฟุตบอลหญ้าเทียม": "Football Court",
     "สนามฟุตซอล": "Futsal Court",
+    "พื้นที่ TU Xtreme — ปีนผาจำลอง": "Tu Xtreme",
+    "พื้นที่ TU Xtreme — ปิงปอง": "Tu Xtreme",
 }
 
 BUILDING_LABEL = {
@@ -30,6 +32,7 @@ BUILDING_LABEL = {
     "Gym 7": "ยิมเนเซียม 7",
     "Football Court": "สนามฟุตบอล",
     "Futsal Court": "สนามฟุตซอล",
+    "Tu Xtreme": "TU Xtreme",
 }
 
 SPORT_EMOJI = {
@@ -42,6 +45,8 @@ SPORT_EMOJI = {
     "ฟุตบอล": "⚽",
     "ฟุตซอล": "⚽",
     "ซอฟท์บอล": "🥎",
+    "ปีนผาจำลอง": "🧗",
+    "ปิงปอง": "🏓",
 }
 
 COURT_COUNT = {  # (ชื่อสนาม, ชื่อกีฬา)

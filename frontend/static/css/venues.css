@@ -158,10 +158,10 @@ body.gym-detail-page {
     width: 100%;
     margin: 1.5rem auto;
     border-radius: 12px;
-    overflow: hidden;
+    overflow: visible;
     box-shadow: 0 4px 15px rgba(0,0,0,0.1);
 }
-.map-container img { width: 100%; height: auto; display: block; }
+.map-container img { width: 100%; height: auto; display: block; border-radius: 12px; }
 
 .yellow-building {
     position: absolute;
@@ -172,6 +172,7 @@ body.gym-detail-page {
     transition: background 0.2s ease, transform 0.05s ease, box-shadow 0.05s ease;
 }
 .yellow-building:hover { background: rgb(255, 197, 24); }
+.yellow-building:hover, .yellow-building:focus-within { z-index: 20; }
 .yellow-building:active { transform: translateY(10px); box-shadow: 0 0 0 #DB835F; }
 
 .yellow-building .building-info {
@@ -270,6 +271,7 @@ body.gym-detail-page {
 .yellow-building .sport-menu a:active { box-shadow: none; transform: translateY(3px); }
 
 .yellow-building:hover .sport-menu,
+.yellow-building:focus .sport-menu,
 .yellow-building:focus-within .sport-menu { display: block; }
 
 .yellow-building.has-menu { cursor: default; }
@@ -294,6 +296,7 @@ body.gym-detail-page {
   pointer-events: none;
 }
 .yellow-building:hover .building-name,
+.yellow-building:focus .building-name,
 .yellow-building:focus-within .building-name { display: none; }
 
 /* สนามที่ยังไม่มีตำแหน่งบนแผนที่ */
@@ -339,5 +342,7 @@ body.gym-detail-page {
   .other-venues { padding-inline: 24px; }
 }
 @media (max-width: 699.98px) {
+  .venue-page .welcome { overflow-x: auto; }
+  .venue-page .map-container { width: 720px; margin: 1rem 0; }
   .other-venues ul { grid-template-columns: 1fr; }
 }

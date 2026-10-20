@@ -24,7 +24,7 @@
     return payload.data.csrf_token;
   }
 
-  async function request(path, options) {
+  async function request(path, options, includeMeta) {
     const settings = Object.assign({ credentials: "same-origin" }, options || {});
     settings.headers = Object.assign({ Accept: "application/json" }, settings.headers || {});
     if (settings.method && !["GET", "HEAD"].includes(settings.method)) {
@@ -39,7 +39,7 @@
       error.payload = payload;
       throw error;
     }
-    return payload.data;
+    return includeMeta ? payload : payload.data;
   }
 
   async function currentUser() {
@@ -130,6 +130,14 @@
     return { sports: sportNames, venues };
   }
 
+  async function allVenues(sportId) {
+    const first = await request(`/venues?sport_id=${sportId}&page_size=100`, undefined, true);
+    const pages = Math.ceil(first.total / first.page_size);
+    if (pages <= 1) return first.data;
+    const rest = await Promise.all(Array.from({ length: pages - 1 }, (_, index) => request(`/venues?sport_id=${sportId}&page=${index + 2}&page_size=100`, undefined, true)));
+    return first.data.concat(...rest.map((page) => page.data));
+  }
+
   async function initHome() {
     const section = document.querySelector("[data-home-parties]");
     if (!section) return;
@@ -162,14 +170,77 @@
     return intervals.map((entry) => `${days[entry.weekday]} ${entry.opens_at.slice(0, 5)}–${entry.closes_at.slice(0, 5)} น.`).join(" · ");
   }
 
+  function intervalsForDate(form, intervals) {
+    const date = form.elements.date.value;
+    if (!date || !intervals) return null;
+    const weekday = (new Date(`${date}T12:00:00+07:00`).getUTCDay() + 6) % 7;
+    return intervals.filter((entry) => entry.weekday === weekday);
+  }
+
+  function minutes(time) {
+    const [hour, minute] = time.slice(0, 5).split(":").map(Number);
+    return hour * 60 + minute;
+  }
+
+  function clock(minutesSinceMidnight) {
+    return `${String(Math.floor(minutesSinceMidnight / 60)).padStart(2, "0")}:${String(minutesSinceMidnight % 60).padStart(2, "0")}`;
+  }
+
+  function hourChoices(intervals, start) {
+    const choices = new Set();
+    intervals.forEach((entry) => {
+      const opens = minutes(entry.opens_at);
+      const closes = minutes(entry.closes_at);
+      const first = start === undefined ? opens : Math.max(opens, start + 60);
+      for (let value = first; value <= closes; value += 60) {
+        if (start === undefined ? value < closes : value <= closes) choices.add(clock(value));
+      }
+    });
+    return [...choices].sort();
+  }
+
+  function replaceTimeChoices(select, choices, placeholder) {
+    const selected = select.value;
+    select.replaceChildren(new Option(placeholder, ""), ...choices.map((value) => new Option(value, value)));
+    select.disabled = !choices.length;
+    if (choices.includes(selected)) select.value = selected;
+  }
+
+  function updateTimeBounds(form, intervals, hoursBox) {
+    const startInput = form.elements.start_time;
+    const endInput = form.elements.end_time;
+    const available = intervalsForDate(form, intervals);
+    if (available === null) {
+      replaceTimeChoices(startInput, [], "เลือกวันที่และสนามก่อน");
+      replaceTimeChoices(endInput, [], "เลือกเวลาเริ่มก่อน");
+      return false;
+    }
+    if (!available.length) {
+      replaceTimeChoices(startInput, [], "สนามปิดในวันที่เลือก");
+      replaceTimeChoices(endInput, [], "สนามปิดในวันที่เลือก");
+      hoursBox.textContent = "สนามปิดในวันที่เลือก";
+      hoursBox.classList.add("is-error");
+      return false;
+    }
+    replaceTimeChoices(startInput, hourChoices(available), "เลือกเวลาเริ่ม");
+    replaceTimeChoices(
+      endInput,
+      startInput.value ? hourChoices(available, minutes(startInput.value)) : [],
+      "เลือกเวลาเริ่มก่อน"
+    );
+    return true;
+  }
+
   function localScheduleValid(form, intervals) {
     const date = form.elements.date.value;
     const start = form.elements.start_time.value;
     const end = form.elements.end_time.value;
-    if (!date || !start || !end || !intervals) return { valid: true, message: "" };
+    if (!date || !intervals) return { valid: true, message: "" };
+    const available = intervalsForDate(form, intervals);
+    if (!available.length) return { valid: false, message: "สนามปิดในวันที่เลือก" };
+    if (!start || !end) return { valid: true, message: "" };
     if (end <= start) return { valid: false, message: "เวลาสิ้นสุดต้องอยู่หลังเวลาเริ่ม" };
-    const weekday = (new Date(`${date}T12:00:00+07:00`).getUTCDay() + 6) % 7;
-    const valid = intervals.some((entry) => entry.weekday === weekday && entry.opens_at.slice(0, 5) <= start && end <= entry.closes_at.slice(0, 5));
+    const valid = available.some((entry) => entry.opens_at.slice(0, 5) <= start && end <= entry.closes_at.slice(0, 5));
     return valid ? { valid: true, message: "ช่วงเวลาที่เลือกอยู่ในเวลาเปิดบริการ" } : { valid: false, message: "ช่วงเวลาที่เลือกอยู่นอกเวลาเปิดสนาม" };
   }
 
@@ -187,19 +258,24 @@
     let intervals = null;
 
     function renderScheduleCheck() {
+      const boundsAvailable = updateTimeBounds(form, intervals, hoursBox);
+      if (boundsAvailable && intervals && form.elements.date.value) {
+        hoursBox.textContent = formatHours(intervals);
+        hoursBox.classList.remove("is-error");
+      }
       const check = localScheduleValid(form, intervals);
       if (intervals && form.elements.date.value && form.elements.start_time.value && form.elements.end_time.value) {
         hoursBox.textContent = check.message;
         hoursBox.classList.toggle("is-error", !check.valid);
       }
-      return check;
+      return boundsAvailable ? check : { valid: false, message: "สนามปิดในวันที่เลือก" };
     }
     async function loadVenues(selectedVenue) {
       venueSelect.replaceChildren(new Option("เลือกสนาม", ""));
       venueSelect.disabled = true; intervals = null;
       if (!sportSelect.value) { venueSelect.options[0].text = "เลือกกีฬาก่อน"; hoursBox.textContent = "เลือกสนามเพื่อดูเวลาเปิดบริการ"; return; }
       try {
-        const venues = await request(`/venues?sport_id=${sportSelect.value}`);
+        const venues = await allVenues(sportSelect.value);
         venues.forEach((venue) => venueSelect.add(new Option(`${venue.name} — ${venue.location_text}`, venue.id)));
         venueSelect.disabled = false;
         if (selectedVenue) { venueSelect.value = String(selectedVenue); await loadHours(); }
@@ -213,6 +289,7 @@
         intervals = hours.intervals;
         hoursBox.textContent = formatHours(intervals);
         hoursBox.classList.remove("is-error");
+        updateTimeBounds(form, intervals, hoursBox);
         renderScheduleCheck();
       } catch (error) { hoursBox.textContent = error.message; hoursBox.classList.add("is-error"); }
     }
@@ -230,6 +307,9 @@
         const starts = bangkokDateTimeParts(party.starts_at); const ends = bangkokDateTimeParts(party.ends_at);
         form.elements.date.value = starts.date; form.elements.start_time.value = starts.time; form.elements.end_time.value = ends.time;
         await loadVenues(party.venue_id);
+      } else if (page.dataset.sportId) {
+        sportSelect.value = page.dataset.sportId;
+        await loadVenues(page.dataset.venueId);
       }
     } catch (error) { setError(errorBox, error.message); return; }
     form.addEventListener("submit", async function (event) {
@@ -271,6 +351,25 @@
         const cancel = element("button", "app-secondary app-danger", "ยกเลิกปาร์ตี้");
         cancel.addEventListener("click", async () => { if (!window.confirm("ต้องการยกเลิกปาร์ตี้นี้หรือไม่?")) return; cancel.disabled = true; try { await request(`/parties/${party.id}/cancel`, { method: "POST", body: "{}" }); window.location.reload(); } catch (error) { cancel.disabled = false; alert(error.message); } });
         actions.append(edit, cancel);
+        const pending = await request(`/parties/${party.id}/join-requests/pending`);
+        if (pending.length) {
+          const requests = element("div", "detail-pending");
+          requests.append(element("strong", "", "คำขอเข้าร่วม"));
+          pending.forEach((entry) => {
+            const row = element("div", "detail-request", entry.display_name);
+            ["Approved", "Rejected"].forEach((status) => {
+              const button = element("button", status === "Approved" ? "app-primary" : "app-secondary", status === "Approved" ? "อนุมัติ" : "ปฏิเสธ");
+              button.addEventListener("click", async () => {
+                button.disabled = true;
+                try { await request(`/parties/${party.id}/join-requests/${entry.id}/decision`, { method: "POST", body: JSON.stringify({ status }) }); window.location.reload(); }
+                catch (error) { button.disabled = false; alert(error.message); }
+              });
+              row.append(button);
+            });
+            requests.append(row);
+          });
+          actions.append(requests);
+        }
       } else if (party.is_member) actions.append(element("div", "app-success", "คุณเป็นสมาชิกของปาร์ตี้นี้แล้ว"));
       else if (party.state === "Open") {
         const existing = await request(`/parties/${party.id}/join-requests/me`);

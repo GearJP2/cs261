@@ -15,9 +15,9 @@
 {% for venue in venues %}
 {% if venue.sports|length > 1 %}
 <div class="yellow-building has-menu" tabindex="0" style="top:{{ venue.pos.top|stringformat:'g' }}%; left:{{ venue.pos.left|stringformat:'g' }}%; width:{{ venue.pos.width|stringformat:'g' }}%; height:{{ venue.pos.height|stringformat:'g' }}%;"><span class="building-name">{{ venue.name }}</span><span class="building-info"><strong>{{ venue.name }}</strong>{% for s in venue.sports %}<br>{{ s.emoji }} {{ s.name }}{% if s.court_count %}: {{ s.court_count }} court{% endif %}{% if s.book_first %}<span class="booking-badge">Book First</span>{% endif %}{% endfor %}</span>
-<div class="sport-menu"><ul>{% for s in venue.sports %}<li><a href="{% url 'venues:sport_detail' s.venue_id s.id %}"><span>{{ s.emoji }}</span>{{ s.name }}</a></li>{% endfor %}</ul></div></div>
+<div class="sport-menu"><ul>{% for s in venue.sports %}<li><a href="{% url 'party-create-page' %}?sport_id={{ s.id }}&amp;venue_id={{ s.venue_id }}"><span>{{ s.emoji }}</span>{{ s.name }}</a></li>{% endfor %}</ul></div></div>
 {% else %}
-<a href="{% url 'venues:venue_detail' venue.id %}" class="yellow-building" style="top:{{ venue.pos.top|stringformat:'g' }}%; left:{{ venue.pos.left|stringformat:'g' }}%; width:{{ venue.pos.width|stringformat:'g' }}%; height:{{ venue.pos.height|stringformat:'g' }}%;"><span class="building-name">{{ venue.name }}</span><span class="building-info"><strong>{{ venue.name }}</strong>{% for s in venue.sports %}<br>{{ s.emoji }} {{ s.name }}{% if s.court_count %}: {{ s.court_count }} court{% endif %}{% if s.book_first %}<span class="booking-badge">Book First</span>{% endif %}{% endfor %}</span></a>
+<a href="{% url 'party-create-page' %}?sport_id={{ venue.sports.0.id }}&amp;venue_id={{ venue.id }}" class="yellow-building" style="top:{{ venue.pos.top|stringformat:'g' }}%; left:{{ venue.pos.left|stringformat:'g' }}%; width:{{ venue.pos.width|stringformat:'g' }}%; height:{{ venue.pos.height|stringformat:'g' }}%;"><span class="building-name">{{ venue.name }}</span><span class="building-info"><strong>{{ venue.name }}</strong>{% for s in venue.sports %}<br>{{ s.emoji }} {{ s.name }}{% if s.court_count %}: {{ s.court_count }} court{% endif %}{% if s.book_first %}<span class="booking-badge">Book First</span>{% endif %}{% endfor %}</span></a>
 {% endif %}
 {% endfor %}
 </div>

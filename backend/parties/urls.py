@@ -16,4 +16,14 @@ urlpatterns = [
         views.my_join_request,
         name="party-join-request-me",
     ),
+    path(
+        "parties/<int:party_id>/join-requests/pending",
+        views.join_requests,
+        name="party-join-request-list",
+    ),
+    path(
+        "parties/<int:party_id>/join-requests/<int:request_id>/decision",
+        views.decide_join_request_api,
+        name="party-join-request-decision",
+    ),
 ]

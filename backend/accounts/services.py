@@ -80,6 +80,8 @@ def validate_university_response(result):
 
         if not isinstance(value, str) or not value.strip():
             raise UniversityAPIError(f"response ไม่มีข้อมูล {field} ที่ถูกต้อง")
+    if len(result["username"]) > 255 or len(result["displayname_th"]) > 100:
+        raise UniversityAPIError("response มีข้อมูลยาวเกินกว่าที่ระบบรองรับ")
 
     return {
         "subject": result["username"],

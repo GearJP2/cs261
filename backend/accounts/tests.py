@@ -554,6 +554,11 @@ class UniversityResponseValidationTests(SimpleTestCase):
                     with self.assertRaises(UniversityAPIError):
                         validate_university_response({**self.valid, field: value})
 
+    def test_provider_text_must_fit_database_columns(self):
+        for field, value in (("username", "x" * 256), ("displayname_th", "x" * 101)):
+            with self.subTest(field=field), self.assertRaises(UniversityAPIError):
+                validate_university_response({**self.valid, field: value})
+
     def test_non_student_types_are_rejected(self):
         for kind in ("staff", "teacher", "unknown"):
             with self.subTest(kind=kind):
