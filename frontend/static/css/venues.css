@@ -342,7 +342,13 @@ body.gym-detail-page {
   .other-venues { padding-inline: 24px; }
 }
 @media (max-width: 699.98px) {
-  .venue-page .welcome { overflow-x: auto; }
-  .venue-page .map-container { width: 720px; margin: 1rem 0; }
+  .venue-page .welcome { overflow-x: hidden; }
+  .venue-page .map-container { width: 100%; margin: 1rem 0; }
+  .yellow-building { min-width: 28px; min-height: 28px; }
+  .yellow-building .building-name { display: block; font-size: clamp(.35rem, 1.7vw, .58rem); }
+  .yellow-building .building-info { bottom: auto; top: 110%; min-width: 130px; font-size: .75rem; }
+  .yellow-building.has-menu .building-name { font-size: clamp(.38rem, 2.2vw, .62rem); }
+  .yellow-building.has-menu .sport-menu { padding: 4%; }
+  .yellow-building.has-menu .sport-menu a { font-size: clamp(.4rem, 2.3vw, .62rem); }
   .other-venues ul { grid-template-columns: 1fr; }
 }
