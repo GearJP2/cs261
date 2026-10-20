@@ -111,31 +111,36 @@ make smoke
 
 เปิด <http://localhost:8000/>; PostgreSQL สำหรับเครื่องมือ DB อยู่ที่ `localhost:5433` โดยใช้ค่าจาก `.env` ตรวจ log ด้วย `make logs` และดูสถานะด้วย `make ps` การหยุดตามปกติใช้ `make down` ซึ่งยังเก็บข้อมูลในฐานข้อมูลไว้
 
-#### ข้อมูลเดโม Sprint 1
+#### ข้อมูลสนาม Sprint 1
 
-หลังเปิดระบบครั้งแรก ให้เพิ่มข้อมูลสนามสำหรับแผนที่และการสร้างห้อง:
+เมื่อรัน `make up` ใน development ระบบจะเพิ่มหรือคืนค่าข้อมูลสนาม กีฬา และเวลาเปิด–ปิดของ Sprint 1 ให้อัตโนมัติ ข้อมูลนี้เป็น catalog ของระบบ ไม่ใช่ข้อมูลที่ผู้ใช้ต้องกรอก และการเปิดระบบซ้ำจะไม่สร้างรายการซ้ำ
 
-```bash
-docker compose exec -T backend python backend/manage.py seed_venues
-```
-
-คำสั่งนี้ต้องใช้ `DEBUG=true` และสร้างข้อมูลสนาม/กีฬาสำหรับ development เท่านั้น หากต้องการข้อมูล Party ตัวอย่างเพิ่ม ให้รัน:
+หากต้องการข้อมูล Party ตัวอย่างเพิ่ม ให้รัน:
 
 ```bash
 make seed
 ```
 
-#### ล้างฐานข้อมูล local
+#### ล้างเฉพาะข้อมูลกิจกรรม
+
+หากต้องการล้างห้องที่ผู้ใช้สร้างและข้อมูลสมาชิก/คำขอเข้าร่วมทั้งหมด แต่เก็บบัญชีผู้ใช้ สนาม กีฬา และเวลาเปิด–ปิดไว้ ให้รัน:
+
+```bash
+docker compose exec -T backend python backend/manage.py shell -c "from parties.models import Party; Party.objects.all().delete()"
+```
+
+`PartyMembership` และ `JoinRequest` ที่ผูกกับห้องจะถูกลบตามไปด้วยโดยอัตโนมัติ
+
+#### ล้างฐานข้อมูล local ทั้งหมด
 
 เมื่อต้องการลบข้อมูลที่ทดสอบทั้งหมด เช่น users, admin, Party, คำขอเข้าร่วม และสนาม ให้ลบ PostgreSQL volume แล้วเปิดระบบใหม่:
 
 ```bash
 docker compose down --volumes --remove-orphans
 make up
-docker compose exec -T backend python backend/manage.py seed_venues
 ```
 
-คำสั่งนี้ลบข้อมูล local ถาวร แต่ไม่ลบ source code หรือ Docker image. หลัง `make up` ระบบจะสร้างฐานข้อมูลใหม่และใช้ migrations ที่ commit ไว้ให้โดยอัตโนมัติ
+คำสั่งนี้ลบข้อมูล local ถาวร แต่ไม่ลบ source code หรือ Docker image. หลัง `make up` ระบบจะสร้างฐานข้อมูลใหม่ ใช้ migrations ที่ commit ไว้ และคืน catalog สนามให้อัตโนมัติ
 
 ดูวิธีใช้ Docker โดยไม่มี Make, migrations, การอัปเดต dependency และการทำงานแต่ละส่วนใน [คู่มือ Development](docs/development.md)
 
