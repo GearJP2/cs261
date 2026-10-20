@@ -125,7 +125,17 @@ docker compose exec -T backend python backend/manage.py seed_venues
 make seed
 ```
 
-#### ล้างฐานข้อมูล local
+#### ล้างเฉพาะข้อมูลกิจกรรม
+
+หากต้องการล้างห้องที่ผู้ใช้สร้างและข้อมูลสมาชิก/คำขอเข้าร่วมทั้งหมด แต่เก็บบัญชีผู้ใช้ สนาม กีฬา และเวลาเปิด–ปิดไว้ ให้รัน:
+
+```bash
+docker compose exec -T backend python backend/manage.py shell -c "from parties.models import Party; Party.objects.all().delete()"
+```
+
+`PartyMembership` และ `JoinRequest` ที่ผูกกับห้องจะถูกลบตามไปด้วยโดยอัตโนมัติ
+
+#### ล้างฐานข้อมูล local ทั้งหมด
 
 เมื่อต้องการลบข้อมูลที่ทดสอบทั้งหมด เช่น users, admin, Party, คำขอเข้าร่วม และสนาม ให้ลบ PostgreSQL volume แล้วเปิดระบบใหม่:
 
