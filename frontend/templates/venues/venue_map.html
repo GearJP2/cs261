@@ -2,11 +2,11 @@
 {% load static %}
 
 {% block title %}Map{% endblock %}
-{% block extra_css %}<link rel="stylesheet" href="{% static 'css/venues.css' %}">{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/navbar.css' %}"><link rel="stylesheet" href="{% static 'css/venues.css' %}">{% endblock %}
 {% block body_class %}venue-page{% endblock %}
 
 {% block content %}
-<header class="map-header"></header>
+{% include "partials/navbar.html" with active="venues" show_create=True %}
 
 <section class="welcome">
 <div class="map-container">
@@ -33,3 +33,4 @@
 {% endif %}
 </section>
 {% endblock %}
+{% block extra_js %}<script src="{% static 'js/app.js' %}" defer></script>{% endblock %}
