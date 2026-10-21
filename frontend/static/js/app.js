@@ -305,8 +305,13 @@
         form.elements.title.value = party.title; form.elements.description.value = party.description;
         form.elements.capacity.value = party.capacity; sportSelect.value = String(party.sport_id);
         const starts = bangkokDateTimeParts(party.starts_at); const ends = bangkokDateTimeParts(party.ends_at);
-        form.elements.date.value = starts.date; form.elements.start_time.value = starts.time; form.elements.end_time.value = ends.time;
+        form.elements.date.value = starts.date;
         await loadVenues(party.venue_id);
+        // The venue response creates the time options; restore values afterwards.
+        form.elements.start_time.value = starts.time;
+        renderScheduleCheck();
+        form.elements.end_time.value = ends.time;
+        renderScheduleCheck();
       } else if (page.dataset.sportId) {
         sportSelect.value = page.dataset.sportId;
         await loadVenues(page.dataset.venueId);

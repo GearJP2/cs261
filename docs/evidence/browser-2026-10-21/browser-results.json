@@ -1,0 +1,72 @@
+[
+  {
+    "case": "US8-BR-01",
+    "actual": "Viewer Login through mock TU; Home → Party 1 → Host link /users/1/ clicked",
+    "result": "Pass"
+  },
+  {
+    "case": "US8-BR-02",
+    "actual": "Host id1 has 75 คะแนน and badminton; id3 shows ไม่มีคะแนน / ยังไม่ได้ระบุกีฬาที่สนใจ",
+    "result": "Pass"
+  },
+  {
+    "case": "US8-BR-03",
+    "actual": "id4 renders 0 คะแนน rather than missing credit",
+    "result": "Pass"
+  },
+  {
+    "case": "US8-BR-04",
+    "actual": "Switch id3 → id4 → id1 shows correct names/credit/interests, no stale previous target",
+    "result": "Pass"
+  },
+  {
+    "case": "US8-BR-05",
+    "actual": "Unknown target shows ไม่พบผู้ใช้; HTTP status also verified in server log/automated tests",
+    "result": "Pass"
+  },
+  {
+    "case": "US8-BR-06",
+    "actual": "Expired viewer session: profile denied with AUTH_REQUIRED JSON, no private profile HTML. Current page does not automatically redirect Login.",
+    "result": "Pass (HTTP guard); UX limitation"
+  },
+  {
+    "case": "US8-BR-07",
+    "actual": "Logout via real UI revokes session; direct revisit /users/1/ returns AUTH_REQUIRED and no profile",
+    "result": "Pass"
+  },
+  {
+    "case": "US8-BR-08",
+    "actual": "Inactive viewer using existing cookie is rejected AUTH_REQUIRED (ModelBackend anonymous), no profile data",
+    "result": "Pass"
+  },
+  {
+    "case": "US7-BR-01",
+    "actual": "Whitespace title → backend validation error; description/date/sport/venue/time/capacity retained and submit re-enabled",
+    "result": "Pass"
+  },
+  {
+    "case": "US7-BR-02",
+    "actual": "Double-click Create navigates to /parties/2/; Host UI shows member_count 1/3 and remaining 2. DB/log duplicate check follows.",
+    "result": "Pass"
+  },
+  {
+    "case": "US7-BR-03",
+    "actual": "Second account sends join request for UI-created party 2; UI shows waiting, member_count stays 1/3 and remaining 2",
+    "result": "Pass"
+  },
+  {
+    "case": "US7-BR-04-before",
+    "actual": "Edit of party2 lost stored 17:00–18:00: start placeholder, end disabled",
+    "result": "Fail — reproduced on main"
+  },
+  {
+    "case": "US7-BR-04-after",
+    "actual": "After fix, Edit restores 17:00 and 18:00 after opening-hour options load",
+    "result": "Pass — local branch fix"
+  },
+  {
+    "case": "US7-BR-05",
+    "actual": "Host saved edited title and retained schedule after fix; Party then became Cancelled from UI cancel action. Native confirm dismissal was not reliably verified by browser tooling.",
+    "result": "Pass edit/cancel state; confirm-dismiss Not verified"
+  }
+]
