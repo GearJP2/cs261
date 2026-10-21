@@ -1,0 +1,1 @@
+[{"id": 1, "title": "ปาร์ตี้ทดสอบโปรไฟล์", "capacity": 4, "host_id": 1, "active_members": 1, "cancelled": false, "requests": []}, {"id": 2, "title": "US7 Browser evidence — edited", "capacity": 3, "host_id": 1, "active_members": 1, "cancelled": true, "requests": [{"user_id": 2, "status": "Pending"}]}]

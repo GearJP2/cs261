@@ -1,0 +1,5 @@
+services:
+  backend:
+    command: ["python", "/evidence/server.py"]
+    volumes:
+      - ./docs/evidence/browser-2026-10-21/harness:/evidence:ro
